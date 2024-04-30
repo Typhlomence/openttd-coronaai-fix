@@ -296,8 +296,7 @@ function CoronaAIFix::BuildStationsAndBuses() {
         secondStation = secondStation,
         potentialDepot = potentialDepot,
         lastChange = AIDate.GetCurrentDate(),
-        actualTown = this.actualTown,
-        exists = true
+        actualTown = this.actualTown
     };
     this.existing.append(obj);
 
@@ -360,12 +359,14 @@ function CoronaAIFix::DeleteUnusedCrap() {
     foreach (obj in this.existing) {
         local stationId = AIStation.GetStationID(obj.firstStation);
         local vehiclesInStation = AIVehicleList_Station(stationId);
-        if (obj.exists && (vehiclesInStation.Count() == 0)) {
+        if (vehiclesInStation.Count() == 0) {
             AILog.Info("Deleting unused things from " + AITown.GetName(obj.actualTown));
             AIRoad.RemoveRoadStation(obj.firstStation);
             AIRoad.RemoveRoadStation(obj.secondStation);
             AIRoad.RemoveRoadDepot(obj.potentialDepot);
-            obj.exists = false;
+            if (DeleteTownInfo(obj.actualTown)) {
+                AILog.Info("Deleted information for "  + AITown.GetName(obj.actualTown));
+            }
         }
     }
 }
@@ -426,4 +427,19 @@ function CoronaAIFix::GetTownInfo(townName) {
         }        
     }
     return null;
+}
+
+/**
+ * Deletes the information for a town if it exists in the array of serviced towns.
+ */
+function CoronaAIFix::DeleteTownInfo(townName) {
+    for (local index = 0 ; index < this.existing.len() ; index = index + 1) {
+        if (this.existing[index].actualTown == townName) {        
+            
+            // Check that the town information was deleted properly.
+            local temp = this.existing.remove(index);
+            return (temp.actualTown == townName);
+        }        
+    }
+    return false;
 }
