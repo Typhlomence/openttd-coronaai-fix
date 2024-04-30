@@ -22,11 +22,11 @@ class CoronaAIFix extends AIController {
     engines = null;
     // For storing all things we built so we can keep eye on them
     existing = [];
-    
+
     // Pathfinder for checking if stations and depots are connected.
     pathfinder = null;
     // The last time the end of the town list was reached.
-    lastDate = null;    
+    lastDate = null;
 
     constructor() {
         // Without this you cannot build road, station or depot
@@ -55,6 +55,9 @@ class CoronaAIFix extends AIController {
 function CoronaAIFix::Start() {
     AICompany.SetName("CoronaAI")
     AICompany.SetLoanAmount(AICompany.GetMaxLoanAmount());
+    
+    // Check if there's existing infrastructure first.
+    this.CheckTowns();
     while (true) {
         this.Sleep(10);
         this.FindBestEngine();
@@ -131,7 +134,7 @@ function CoronaAIFix::SelectTown() {
  */
 function CoronaAIFix::BuildStationsAndBuses() {
     AILog.Info("City name " + AITown.GetName(this.actualTown));
-    
+
     // Get any existing town information
     local existingInfo = this.GetTownInfo(this.actualTown);
     if (existingInfo == null) {
@@ -158,7 +161,7 @@ function CoronaAIFix::BuildStationsAndBuses() {
     local tile = list.Begin();
     while (list.IsEnd() == false && firstStation == null) {
         this.BuildRoadDrivethroughStation(tile);
-        
+
         // Check if the current tile actually has a station that the company owns on it after attempting to build.
         // IsStationTile is used over IsRoadStationTile since the latter might not work if the road type differs from the default.
         if (AITile.IsStationTile(tile) && AICompany.IsMine(AITile.GetOwner(tile))) {
@@ -190,11 +193,11 @@ function CoronaAIFix::BuildStationsAndBuses() {
 
         if (filteredList.Count() > 0) {
             local tile = filteredList.Begin();
-            
+
             // Make sure that there's a road connection between the first and second station tiles.
             while (filteredList.IsEnd() == false && secondStation == null && this.CheckRoadConnection(firstStation, tile) != null) {
                 this.BuildRoadDrivethroughStation(tile);
-                
+
                 // Again, properly check that this company built a station.
                 if (AITile.IsStationTile(tile) && AICompany.IsMine(AITile.GetOwner(tile))) {
                     AILog.Info("Second station built successfully");
@@ -243,13 +246,13 @@ function CoronaAIFix::BuildStationsAndBuses() {
             if (i == 3) {
                 potentialDepot = tile + AIMap.GetTileIndex(-1, 0);
             }
-            
+
             // Like with the second station, check that there's a road connection between the depot's connection tile and the first station tile.
             if (AITile.GetSlope(potentialDepot) == AITile.SLOPE_FLAT && AITile.IsBuildable(potentialDepot) && this.CheckRoadConnection(firstStation, tile) != null) {
                 AIRoad.BuildRoadDepot(potentialDepot, tile);
                 AIRoad.BuildRoad(potentialDepot, tile);
                 AILog.Info("Attempting to build depot at: " + AIMap.GetTileX(potentialDepot) + ":" + AIMap.GetTileY(potentialDepot));
-                
+
                 // Like with the stations, ensure that the depot on the tile also belongs to this company.
                 if (AIRoad.AreRoadTilesConnected(tile, potentialDepot) && AICompany.IsMine(AITile.GetOwner(potentialDepot))) {
                     AILog.Info("Depot built and connected to road successfully");
@@ -274,7 +277,7 @@ function CoronaAIFix::BuildStationsAndBuses() {
 
     // Buy our first bus in location
     local bus = AIVehicle.BuildVehicle(potentialDepot, this.engines.Begin());
-    
+
     // Check that a bus was bought successfully. If not, abort the attempt to build in this town.
     if (AIVehicle.IsValidVehicle(bus)) {
         AIOrder.AppendOrder(bus, firstStation, AIOrder.OF_NONE);
@@ -424,7 +427,7 @@ function CoronaAIFix::GetTownInfo(townName) {
     foreach (obj in this.existing) {
         if (obj.actualTown == townName) {
             return obj;
-        }        
+        }
     }
     return null;
 }
@@ -434,12 +437,132 @@ function CoronaAIFix::GetTownInfo(townName) {
  */
 function CoronaAIFix::DeleteTownInfo(townName) {
     for (local index = 0 ; index < this.existing.len() ; index = index + 1) {
-        if (this.existing[index].actualTown == townName) {        
-            
+        if (this.existing[index].actualTown == townName) {
+
             // Check that the town information was deleted properly.
             local temp = this.existing.remove(index);
             return (temp.actualTown == townName);
-        }        
+        }
     }
     return false;
+}
+
+/**
+ * Runs on first load to see if there is any existing stations, depots and buses for this company in all towns.
+ */
+function CoronaAIFix::CheckTowns() {
+    // Don't do anything if the company has no bus stations.
+    if (AIStationList(AIStation.STATION_BUS_STOP).Count() < 1) {
+        AILog.Info("This company has no bus stations yet");
+        return;
+    }
+
+    AILog.Info("Checking all towns for existing company presence");
+    this.SelectTown();
+    while (this.actualTown != null) {
+
+        // Potential values to store - if there's a bus, two stations and a depot.
+        local bus = null;
+        local firstStation = null;
+        local secondStation = null;
+        local potentialDepot = null;
+
+        // Start the check by looking in the same range of tiles as when building.
+        AILog.Info("Checking " + AITown.GetName(this.actualTown));
+        local townCenter = AITown.GetLocation(this.actualTown);
+        local list = AITileList();
+        list.AddRectangle(townCenter - AIMap.GetTileIndex(8, 8), townCenter + AIMap.GetTileIndex(8, 8));
+
+        // Check only road tiles.
+        list.Valuate(AIRoad.IsRoadTile);
+        list.RemoveValue(0);
+
+        // Check to see if two bus stations already exist.
+        local tile = list.Begin();
+        local firstStation = null;
+        local secondStation = null;
+        while (list.IsEnd() == false && secondStation == null) {
+            if (AITile.IsStationTile(tile) && AICompany.IsMine(AITile.GetOwner(tile))) {
+                AILog.Info("Found existing station at: " + AIMap.GetTileX(tile) + ":" + AIMap.GetTileY(tile));
+                // If we haven't found the first station yet, assume it's this one.
+                if (firstStation == null) {
+                    AILog.Info("Adding it as first station for this town");
+                    firstStation = tile;
+                // Otherwise, add it as the second station.
+                } else {
+                    AILog.Info("Adding it as second station for the town");
+                    secondStation = tile;
+                }
+            }
+            tile = list.Next();
+        }
+
+        // Check to see if a depot exists.
+        list = AITileList();
+        list.AddRectangle(townCenter - AIMap.GetTileIndex(8, 8), townCenter + AIMap.GetTileIndex(8, 8));
+        tile = list.Begin();
+        while (list.IsEnd() == false && potentialDepot == null) {
+            // Check if the current tile already has one of this company's depots
+            if (AIRoad.IsRoadDepotTile(tile) && AICompany.IsMine(AITile.GetOwner(tile))) {
+                AILog.Info("Found existing depot at: " + AIMap.GetTileX(tile) + ":" + AIMap.GetTileY(tile));
+                // Then check if it's connected to an adjacent tile
+                for (local i = 0; i < 4; i++) {
+                    local nextTile = null;
+                    if (i == 0) {
+                        nextTile = tile + AIMap.GetTileIndex(0, 1);
+                    }
+                    if (i == 1) {
+                        nextTile = tile + AIMap.GetTileIndex(1, 0);
+                    }
+                    if (i == 2) {
+                        nextTile = tile + AIMap.GetTileIndex(0, -1);
+                    }
+                    if (i == 3) {
+                        nextTile = tile + AIMap.GetTileIndex(-1, 0);
+                    }
+                    if (AIRoad.AreRoadTilesConnected(nextTile, tile)) {
+                        AILog.Info("It's connected to an adjacent tile, therefore adding it as the depot for this town");
+                        potentialDepot = tile;
+                        break;
+                    }
+                }
+            }
+            tile = list.Next();
+        }
+
+        // Check to see if a bus exists that goes to the found stations (if we found two).
+        if (secondStation != null) {
+            local firstStationVehicles = AIVehicleList_Station(AIStation.GetStationID(firstStation));
+            local secondStationVehicles = AIVehicleList_Station(AIStation.GetStationID(secondStation));
+            local vehicles = AIVehicleList();
+            local vehicle = vehicles.Begin();
+            while (vehicles.IsEnd() == false && bus == null) {
+                // Check if it's a road vehicle
+                if (AIVehicle.GetVehicleType(vehicle) == AIVehicle.VT_ROAD) {
+                    if (firstStationVehicles.HasItem(vehicle) && secondStationVehicles.HasItem(vehicle)) {
+                        AILog.Info("Road vehicle " + vehicle + " stops at both found stations, adding it as the bus for this town");
+                        bus = vehicle;
+                    }
+                }
+                vehicle = vehicles.Next();
+            }
+        }
+
+        // Store information about all the stations, town, etc, but only if the facilities were found.
+        // It's acceptable if a bus cannot be found since it might have been sold due to being unprofitable. In that case the stations will probably be deleted soon.
+        if (firstStation != null || secondStation != null || potentialDepot != null) {
+            local obj = {
+                bus = bus,
+                firstStation = firstStation,
+                secondStation = secondStation,
+                potentialDepot = potentialDepot,
+                lastChange = AIDate.GetCurrentDate(),
+                actualTown = this.actualTown
+            };
+            this.existing.append(obj);
+        }
+
+        this.SelectTown();
+    }
+    AILog.Info("All towns checked");
 }

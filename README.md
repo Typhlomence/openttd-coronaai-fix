@@ -8,6 +8,8 @@ Changes from the original CoronaAI:
 * When building stations and depots, ensure that the company actually built them on the chosen tiles (no matter the road type), as well as checking if a bus was successfully bought.
 * When building stations and depots, ensure they are connected to each other by existing roads.
 * The AI will not try to build anything if it couldn't find a valid vehicle to buy at the moment.
+* Instead of only attempting to build once, it will check through all towns each year and (re)build if there's still nothing it owns in a town (and it can successfully build it).
+* While it doesn't store anything in the save file, the AI will check if it's built anything when it starts to avoid rebuilding in already serviced towns.
 
 Limitations:
 * Likely not to be compatible with all combinations of road vehicle and road type NewGRFs.
