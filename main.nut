@@ -360,9 +360,10 @@ function CoronaAIFix::HandleOldTowns() {
  */
 function CoronaAIFix::DeleteUnusedCrap() {
     foreach (obj in this.existing) {
-        local stationId = AIStation.GetStationID(obj.firstStation);
-        local vehiclesInStation = AIVehicleList_Station(stationId);
-        if (vehiclesInStation.Count() == 0) {
+        local firstStationId = AIStation.GetStationID(obj.firstStation);
+        local secondStationId = AIStation.GetStationID(obj.secondStation);
+        local stationsNotUsed = AIVehicleList_Station(firstStationId).Count() == 0 && AIVehicleList_Station(secondStationId).Count() == 0;
+        if (stationsNotUsed) {
             AILog.Info("Deleting unused things from " + AITown.GetName(obj.actualTown));
             AILog.Info("Attempting to remove station at: " + AIMap.GetTileX(obj.firstStation) + ":" + AIMap.GetTileY(obj.firstStation));
             AIRoad.RemoveRoadStation(obj.firstStation);

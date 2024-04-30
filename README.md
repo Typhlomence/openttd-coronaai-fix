@@ -10,9 +10,11 @@ Changes from the original CoronaAI:
 * The AI will not try to build anything if it couldn't find a valid vehicle to buy at the moment.
 * Instead of only attempting to build once, it will check through all towns each year and (re)build if there's still nothing it owns in a town (and it can successfully build it).
 * While it doesn't store anything in the save file, the AI will check if it's built anything when it starts to avoid rebuilding in already serviced towns.
+* The AI should be able to remove unused infrastructure later if an attempt is unsuccessful due to another company's vehicle being in the way, etc.
 
 Limitations:
 * Likely not to be compatible with all combinations of road vehicle and road type NewGRFs.
+* It's possible that, depending on how infrastructure was initially built, the function for detecting existing infrastructure might not get things exactly right. To try to prevent issues when trying to remove unused infrastructure, it checks that both stations it detected are used first.
 
 # Original readme of ottd-coronaai
 Please increase number of road vehicles per company (in settings -> limitations).
