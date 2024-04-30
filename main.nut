@@ -57,7 +57,8 @@ function CoronaAIFix::Start() {
         this.Sleep(10);
         this.FindBestEngine();
         // If we dont have enough money, just dont build any other stations and buses there
-        if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) > (AICompany.GetMaxLoanAmount() / 10)) {
+        // Also, don't try to build anything if no bus could be found to buy.
+        if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) > (AICompany.GetMaxLoanAmount() / 10) && this.engines.Count() > 0) {
             this.SelectTown();
             if (this.actualTown != null) {
                 BuildStationsAndBuses();

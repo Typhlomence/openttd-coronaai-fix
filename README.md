@@ -7,6 +7,7 @@ Changes from the original CoronaAI:
 * When selecting a bus to use, only consider road vehicles that can travel on the default road type. The bus with the highest capacity will also be chosen.
 * When building stations and depots, ensure that the company actually built them on the chosen tiles (no matter the road type), as well as checking if a bus was successfully bought.
 * When building stations and depots, ensure they are connected to each other by existing roads.
+* The AI will not try to build anything if it couldn't find a valid vehicle to buy at the moment.
 
 Limitations:
 * Likely not to be compatible with all combinations of road vehicle and road type NewGRFs.
