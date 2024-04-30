@@ -55,7 +55,7 @@ class CoronaAIFix extends AIController {
 function CoronaAIFix::Start() {
     AICompany.SetName("CoronaAI")
     AICompany.SetLoanAmount(AICompany.GetMaxLoanAmount());
-    
+
     // Check if there's existing infrastructure first.
     this.CheckTowns();
     while (true) {
@@ -364,11 +364,21 @@ function CoronaAIFix::DeleteUnusedCrap() {
         local vehiclesInStation = AIVehicleList_Station(stationId);
         if (vehiclesInStation.Count() == 0) {
             AILog.Info("Deleting unused things from " + AITown.GetName(obj.actualTown));
+            AILog.Info("Attempting to remove station at: " + AIMap.GetTileX(obj.firstStation) + ":" + AIMap.GetTileY(obj.firstStation));
             AIRoad.RemoveRoadStation(obj.firstStation);
+            AILog.Info("Attempting to remove station at: " + AIMap.GetTileX(obj.secondStation) + ":" + AIMap.GetTileY(obj.secondStation));
             AIRoad.RemoveRoadStation(obj.secondStation);
+            AILog.Info("Attempting to remove depot at: " + AIMap.GetTileX(obj.potentialDepot) + ":" + AIMap.GetTileY(obj.potentialDepot));
             AIRoad.RemoveRoadDepot(obj.potentialDepot);
-            if (DeleteTownInfo(obj.actualTown)) {
-                AILog.Info("Deleted information for "  + AITown.GetName(obj.actualTown));
+
+            // Check if the items were actually removed yet (by checking if the tiles are not owned by the company). Sometimes this can fail if a vehicle is in the way.
+            if (!AICompany.IsMine(AITile.GetOwner(obj.firstStation)) && !AICompany.IsMine(AITile.GetOwner(obj.secondStation)) && !AICompany.IsMine(AITile.GetOwner(obj.potentialDepot))) {
+                AILog.Info("Successfully deleted infrastructure from this town")
+                if (DeleteTownInfo(obj.actualTown)) {
+                    AILog.Info("Deleted information for "  + AITown.GetName(obj.actualTown));
+                }
+            } else {
+                AILog.Info("Some things were not removed yet - will retry later")
             }
         }
     }
@@ -550,7 +560,8 @@ function CoronaAIFix::CheckTowns() {
 
         // Store information about all the stations, town, etc, but only if the facilities were found.
         // It's acceptable if a bus cannot be found since it might have been sold due to being unprofitable. In that case the stations will probably be deleted soon.
-        if (firstStation != null || secondStation != null || potentialDepot != null) {
+        if (firstStation != null && secondStation != null && potentialDepot != null) {
+            AILog.Info("Adding information for this town");
             local obj = {
                 bus = bus,
                 firstStation = firstStation,
