@@ -125,7 +125,7 @@ function CoronaAIFix::BuildStationsAndBuses() {
     local firstStation = null;
     local tile = list.Begin();
     while (list.IsEnd() == false && firstStation == null) {
-        this.BuildRoadDrivethroughStatoin(tile);
+        this.BuildRoadDrivethroughStation(tile);
         
         // Check if the current tile actually has a station that the company owns on it after attempting to build.
         // IsStationTile is used over IsRoadStationTile since the latter might not work if the road type differs from the default.
@@ -159,7 +159,7 @@ function CoronaAIFix::BuildStationsAndBuses() {
         if (filteredList.Count() > 0) {
             local tile = filteredList.Begin();
             while (filteredList.IsEnd() == false && secondStation == null) {
-                this.BuildRoadDrivethroughStatoin(tile);
+                this.BuildRoadDrivethroughStation(tile);
                 
                 // Again, properly check that this company built a station.
                 if (AITile.IsStationTile(tile) && AICompany.IsMine(AITile.GetOwner(tile))) {
@@ -268,7 +268,8 @@ function CoronaAIFix::BuildStationsAndBuses() {
     AILog.Info("End of building");
 }
 
-function CoronaAIFix::BuildRoadDrivethroughStatoin(tile) {
+function CoronaAIFix::BuildRoadDrivethroughStation(tile) {
+    AILog.Info("Attempting to build station at: " + AIMap.GetTileX(tile) + ":" + AIMap.GetTileY(tile));
     AIRoad.BuildDriveThroughRoadStation(tile, tile + AIMap.GetTileIndex(0, 1), AIRoad.ROADVEHTYPE_BUS, AIBaseStation.STATION_NEW);
     AIRoad.BuildDriveThroughRoadStation(tile, tile + AIMap.GetTileIndex(1, 0), AIRoad.ROADVEHTYPE_BUS, AIBaseStation.STATION_NEW);
 }
