@@ -3,6 +3,13 @@
  * I spent only two partial days working on it, therefore it really is intended to be simple.
  * It will try to spread to all cities with buses alone.
  */
+
+// Import the pathfinder to allow checking if there's an existing road connection between stations and depots.
+import("pathfinder.road", "RoadPathFinder", 3);
+
+/**
+ * Constructor
+ */
 class CoronaAIFix extends AIController {
     // The town we are working right now
     actualTown = null;
