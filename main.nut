@@ -25,6 +25,8 @@ class CoronaAIFix extends AIController {
     
     // Pathfinder for checking if stations and depots are connected.
     pathfinder = null;
+    // The last time the end of the town list was reached.
+    lastDate = null;    
 
     constructor() {
         // Without this you cannot build road, station or depot
@@ -101,20 +103,26 @@ function CoronaAIFix::FindBestEngine() {
  * Initialize towns or select next town
  */
 function CoronaAIFix::SelectTown() {
-    if (this.towns == null) {
-        AILog.Info("Generating new towns");
-        local towns = AITownList();
-        towns.Valuate(AITown.GetPopulation);
-        towns.Sort(AIList.SORT_BY_VALUE, false);
-        this.towns = towns;
-    }
+    // Allow the town list to be regenerated if it's a year since it was last generated.
+    if (this.lastDate == null || this.lastDate + 30 * 12 < AIDate.GetCurrentDate()) {
+        if (this.towns == null) {
+                AILog.Info("Generating new towns");
+                local towns = AITownList();
+                towns.Valuate(AITown.GetPopulation);
+                towns.Sort(AIList.SORT_BY_VALUE, false);
+                this.towns = towns;
+        }
 
-    if (this.towns.Count() == 0) {
-        this.actualTown = null;
-    } else {
-        this.actualTown = this.towns.Begin();
-        AILog.Info("Size of towns " + this.towns.Count())
-        this.towns.RemoveTop(1);
+        if (this.towns.Count() == 0) {
+            this.actualTown = null;
+            AILog.Info("Reached end of town list, waiting for a year");
+            this.towns = null;
+            this.lastDate = AIDate.GetCurrentDate();
+        } else {
+            this.actualTown = this.towns.Begin();
+            AILog.Info("Size of towns " + this.towns.Count())
+            this.towns.RemoveTop(1);
+        }
     }
 }
 
