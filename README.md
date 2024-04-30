@@ -4,7 +4,10 @@ CoronaAI is a simple AI that attempts to build bus services in all cities on the
 This is my first work on an AI (or any modification for OpenTTD), so there's probably implementation details that can be improved.
 
 Changes from the original CoronaAI:
-* (To be completed) 
+* When selecting a bus to use, only consider road vehicles that can travel on the default road type. The bus with the highest capacity will also be chosen.
+
+Limitations:
+* (To be completed)
 
 # Original readme of ottd-coronaai
 Please increase number of road vehicles per company (in settings -> limitations).

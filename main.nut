@@ -61,11 +61,25 @@ function CoronaAIFix::Start() {
  */
 function CoronaAIFix::FindBestEngine() {
     local engines = AIEngineList(AIVehicle.VT_ROAD);
+
+    // Only keep vehicles that can operate on the default road type (chosen as the current road type).
+    engines.Valuate(AIEngine.CanRunOnRoad, AIRoad.GetCurrentRoadType())
+    engines.KeepValue(1);
     engines.Valuate(AIEngine.GetCargoType)
     engines.KeepValue(this.passengerCargoId);
+
+    // Pick the vehicle that has the highest capacity.
+    engines.Valuate(AIEngine.GetCapacity)
     engines.Sort(AIList.SORT_BY_VALUE, false);
     engines.KeepTop(1);
-    this.engines = engines;
+
+    // Ensure a bus was actually found. If not, return an empty list.
+    // (We check for the road vehicle type again since if there's no buses, it might pick a vehicle of a different type.)
+    if (engines.Count() < 0 || AIEngine.GetVehicleType(engines.Begin()) != AIVehicle.VT_ROAD || AIEngine.GetCapacity(engines.Begin()) < 1) {
+        this.engines = AIList();
+    } else {
+        this.engines = engines;
+    }
 }
 
 /**
