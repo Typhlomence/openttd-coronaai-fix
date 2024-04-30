@@ -131,6 +131,15 @@ function CoronaAIFix::SelectTown() {
  */
 function CoronaAIFix::BuildStationsAndBuses() {
     AILog.Info("City name " + AITown.GetName(this.actualTown));
+    
+    // Get any existing town information
+    local existingInfo = this.GetTownInfo(this.actualTown);
+    if (existingInfo == null) {
+        AILog.Info("This town has no information yet");
+    } else {
+        AILog.Info("This town is already serviced - skipping to the next town");
+        return;
+    }
 
     local townCenter = AITown.GetLocation(this.actualTown);
     local list = AITileList();
@@ -405,4 +414,16 @@ function CoronaAIFix::CheckRoadConnection(startTile, endTile) {
       AIController.Sleep(1);
     }
     return path;
+}
+
+/**
+ * Gets the information for a town if it exists in the array of serviced towns.
+ */
+function CoronaAIFix::GetTownInfo(townName) {
+    foreach (obj in this.existing) {
+        if (obj.actualTown == townName) {
+            return obj;
+        }        
+    }
+    return null;
 }
