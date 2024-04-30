@@ -1,13 +1,13 @@
-class CoronaAI extends AIInfo {
-  function GetAuthor()      { return "Libor Vilimek"; }
-  function GetName()        { return "CoronaAI"; }
-  function GetDescription() { return "Built while having Coronavirus myself. The CoronaAI will try to spread to all cities with bus transition. Please increase number of road vehicles to 2500 (on 1024x1024 map)."; }
+class CoronaAIFix extends AIInfo {
+  function GetAuthor()      { return "Libor Vilimek + Typhlomence"; }
+  function GetName()        { return "CoronaAI Fix"; }
+  function GetDescription() { return "A light modification of Corona AI that fixes some issues. This AI will attempt to build bus services in all cities on the map. You may need to increase the number of road vehicles allowed (e.g. 2500 on a 1024x1024 map). Originally by Libor Vilimek."; }
   function GetVersion()     { return 1; }
-  function GetDate()        { return "2020-11-15"; }
-  function CreateInstance() { return "CoronaAI"; }
-  function GetShortName()   { return "COVD"; }
+  function GetDate()        { return "2024-04-30"; }
+  function CreateInstance() { return "CoronaAIFix"; }
+  function GetShortName()   { return "COVF"; }
   function GetAPIVersion()  { return "1.9"; }
 }
 
 /* Tell the core we are an AI */
-RegisterAI(CoronaAI());
+RegisterAI(CoronaAIFix());

@@ -3,7 +3,7 @@
  * I spent only two partial days working on it, therefore it really is intended to be simple.
  * It will try to spread to all cities with buses alone.
  */
-class CoronaAI extends AIController {
+class CoronaAIFix extends AIController {
     // The town we are working right now
     actualTown = null;
     // Some nasty surprise - you have find cargoId in list, you cannot just use i.e. AICargo.CC_PASSENGERS
@@ -36,7 +36,7 @@ class CoronaAI extends AIController {
 /**
  * Äll the logic starts here
  */
-function CoronaAI::Start() {
+function CoronaAIFix::Start() {
     AICompany.SetName("CoronaAI")
     AICompany.SetLoanAmount(AICompany.GetMaxLoanAmount());
     while (true) {
@@ -59,7 +59,7 @@ function CoronaAI::Start() {
 /**
  * Find best bus for passengers avialable
  */
-function CoronaAI::FindBestEngine() {
+function CoronaAIFix::FindBestEngine() {
     local engines = AIEngineList(AIVehicle.VT_ROAD);
     engines.Valuate(AIEngine.GetCargoType)
     engines.KeepValue(this.passengerCargoId);
@@ -71,7 +71,7 @@ function CoronaAI::FindBestEngine() {
 /**
  * Initialize towns or select next town
  */
-function CoronaAI::SelectTown() {
+function CoronaAIFix::SelectTown() {
     if (this.towns == null) {
         AILog.Info("Generating new towns");
         local towns = AITownList();
@@ -92,7 +92,7 @@ function CoronaAI::SelectTown() {
 /**
  * Core functionality - This will build the stations and buses
  */
-function CoronaAI::BuildStationsAndBuses() {
+function CoronaAIFix::BuildStationsAndBuses() {
     AILog.Info("City name " + AITown.GetName(this.actualTown));
 
     local townCenter = AITown.GetLocation(this.actualTown);
@@ -234,7 +234,7 @@ function CoronaAI::BuildStationsAndBuses() {
     AILog.Info("End of building");
 }
 
-function CoronaAI::BuildRoadDrivethroughStatoin(tile) {
+function CoronaAIFix::BuildRoadDrivethroughStatoin(tile) {
     AIRoad.BuildDriveThroughRoadStation(tile, tile + AIMap.GetTileIndex(0, 1), AIRoad.ROADVEHTYPE_BUS, AIBaseStation.STATION_NEW);
     AIRoad.BuildDriveThroughRoadStation(tile, tile + AIMap.GetTileIndex(1, 0), AIRoad.ROADVEHTYPE_BUS, AIBaseStation.STATION_NEW);
 }
@@ -242,7 +242,7 @@ function CoronaAI::BuildRoadDrivethroughStatoin(tile) {
 /**
  * If vehicle is highly unprofitable - just sell it
  */
-function CoronaAI::SellUnprofitables() {
+function CoronaAIFix::SellUnprofitables() {
     local vehicles = AIVehicleList();
     local vehicle = vehicles.Begin();
     while (vehicles.IsEnd() == false) {
@@ -262,7 +262,7 @@ function CoronaAI::SellUnprofitables() {
 /**
  * Add buses in old towns where we already have stations - if there is enough passengers
  */
-function CoronaAI::HandleOldTowns() {
+function CoronaAIFix::HandleOldTowns() {
     foreach (obj in this.existing) {
         // we only add bus once per year to avoid spamming it
         if (obj.lastChange + 30 * 12 < AIDate.GetCurrentDate()) {
@@ -285,7 +285,7 @@ function CoronaAI::HandleOldTowns() {
 /**
  * If we find out that there is non-used infrastructure - remove it
  */
-function CoronaAI::DeleteUnusedCrap() {
+function CoronaAIFix::DeleteUnusedCrap() {
     foreach (obj in this.existing) {
         local stationId = AIStation.GetStationID(obj.firstStation);
         local vehiclesInStation = AIVehicleList_Station(stationId);
@@ -302,7 +302,7 @@ function CoronaAI::DeleteUnusedCrap() {
 /**
  * Selling vehicles that are too old
  */
-function CoronaAI::HandleOldVehicles() {
+function CoronaAIFix::HandleOldVehicles() {
     local vehicles = AIVehicleList();
     local vehicle = vehicles.Begin();
     while (vehicles.IsEnd() == false) {
