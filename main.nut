@@ -126,7 +126,11 @@ function CoronaAIFix::BuildStationsAndBuses() {
     local tile = list.Begin();
     while (list.IsEnd() == false && firstStation == null) {
         this.BuildRoadDrivethroughStatoin(tile);
-        if (AIRoad.IsRoadStationTile(tile)) {
+        
+        // Check if the current tile actually has a station that the company owns on it after attempting to build.
+        // IsStationTile is used over IsRoadStationTile since the latter might not work if the road type differs from the default.
+        if (AITile.IsStationTile(tile) && AICompany.IsMine(AITile.GetOwner(tile))) {
+            AILog.Info("First station built successfully");
             firstStation = tile;
         }
 
@@ -156,7 +160,10 @@ function CoronaAIFix::BuildStationsAndBuses() {
             local tile = filteredList.Begin();
             while (filteredList.IsEnd() == false && secondStation == null) {
                 this.BuildRoadDrivethroughStatoin(tile);
-                if (AIRoad.IsRoadStationTile(tile)) {
+                
+                // Again, properly check that this company built a station.
+                if (AITile.IsStationTile(tile) && AICompany.IsMine(AITile.GetOwner(tile))) {
+                    AILog.Info("Second station built successfully");
                     secondStation = tile;
                 }
 
@@ -205,9 +212,11 @@ function CoronaAIFix::BuildStationsAndBuses() {
             if (AITile.GetSlope(potentialDepot) == AITile.SLOPE_FLAT && AITile.IsBuildable(potentialDepot)) {
                 AIRoad.BuildRoadDepot(potentialDepot, tile);
                 AIRoad.BuildRoad(potentialDepot, tile);
-                AILog.Info("Building Depot at: " + AIMap.GetTileX(potentialDepot) + ":" + AIMap.GetTileY(potentialDepot));
-                if (AIRoad.AreRoadTilesConnected(tile, potentialDepot)) {
-                    AILog.Info("Its Connected");
+                AILog.Info("Attempting to build depot at: " + AIMap.GetTileX(potentialDepot) + ":" + AIMap.GetTileY(potentialDepot));
+                
+                // Like with the stations, ensure that the depot on the tile also belongs to this company.
+                if (AIRoad.AreRoadTilesConnected(tile, potentialDepot) && AICompany.IsMine(AITile.GetOwner(potentialDepot))) {
+                    AILog.Info("Depot built and connected to road successfully");
                     isConnected = true;
                     break;
                 } else {
@@ -229,9 +238,20 @@ function CoronaAIFix::BuildStationsAndBuses() {
 
     // Buy our first bus in location
     local bus = AIVehicle.BuildVehicle(potentialDepot, this.engines.Begin());
-    AIOrder.AppendOrder(bus, firstStation, AIOrder.OF_NONE);
-    AIOrder.AppendOrder(bus, secondStation, AIOrder.OF_NONE);
-    AIVehicle.StartStopVehicle(bus);
+    
+    // Check that a bus was bought successfully. If not, abort the attempt to build in this town.
+    if (AIVehicle.IsValidVehicle(bus)) {
+        AIOrder.AppendOrder(bus, firstStation, AIOrder.OF_NONE);
+        AIOrder.AppendOrder(bus, secondStation, AIOrder.OF_NONE);
+        AIVehicle.StartStopVehicle(bus);
+        AILog.Info("Vehicle bought successfully");
+    } else {
+        AILog.Info("Failed to buy a vehicle, aborting");
+        AIRoad.RemoveRoadStation(firstStation);
+        AIRoad.RemoveRoadStation(secondStation);
+        AITile.DemolishTile(potentialDepot);
+        return;
+    }
 
     // Store information about all the stations, town, etc.
     local obj = {
