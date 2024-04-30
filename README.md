@@ -6,9 +6,10 @@ This is my first work on an AI (or any modification for OpenTTD), so there's pro
 Changes from the original CoronaAI:
 * When selecting a bus to use, only consider road vehicles that can travel on the default road type. The bus with the highest capacity will also be chosen.
 * When building stations and depots, ensure that the company actually built them on the chosen tiles (no matter the road type), as well as checking if a bus was successfully bought.
+* When building stations and depots, ensure they are connected to each other by existing roads.
 
 Limitations:
-* (To be completed)
+* Likely not to be compatible with all combinations of road vehicle and road type NewGRFs.
 
 # Original readme of ottd-coronaai
 Please increase number of road vehicles per company (in settings -> limitations).

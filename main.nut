@@ -15,6 +15,9 @@ class CoronaAIFix extends AIController {
     engines = null;
     // For storing all things we built so we can keep eye on them
     existing = [];
+    
+    // Pathfinder for checking if stations and depots are connected.
+    pathfinder = null;
 
     constructor() {
         // Without this you cannot build road, station or depot
@@ -29,6 +32,10 @@ class CoronaAIFix extends AIController {
                 break;
             }
         }
+
+        // Add the pathfinder, and set it to only look at existing roads.
+        this.pathfinder = RoadPathFinder();
+        this.pathfinder.cost.no_existing_road = pathfinder.cost.max_cost
     }
     function Start() ;
 }
@@ -158,7 +165,9 @@ function CoronaAIFix::BuildStationsAndBuses() {
 
         if (filteredList.Count() > 0) {
             local tile = filteredList.Begin();
-            while (filteredList.IsEnd() == false && secondStation == null) {
+            
+            // Make sure that there's a road connection between the first and second station tiles.
+            while (filteredList.IsEnd() == false && secondStation == null && this.CheckRoadConnection(firstStation, tile) != null) {
                 this.BuildRoadDrivethroughStation(tile);
                 
                 // Again, properly check that this company built a station.
@@ -209,7 +218,9 @@ function CoronaAIFix::BuildStationsAndBuses() {
             if (i == 3) {
                 potentialDepot = tile + AIMap.GetTileIndex(-1, 0);
             }
-            if (AITile.GetSlope(potentialDepot) == AITile.SLOPE_FLAT && AITile.IsBuildable(potentialDepot)) {
+            
+            // Like with the second station, check that there's a road connection between the depot's connection tile and the first station tile.
+            if (AITile.GetSlope(potentialDepot) == AITile.SLOPE_FLAT && AITile.IsBuildable(potentialDepot) && this.CheckRoadConnection(firstStation, tile) != null) {
                 AIRoad.BuildRoadDepot(potentialDepot, tile);
                 AIRoad.BuildRoad(potentialDepot, tile);
                 AILog.Info("Attempting to build depot at: " + AIMap.GetTileX(potentialDepot) + ":" + AIMap.GetTileY(potentialDepot));
@@ -365,4 +376,17 @@ function CoronaAIFix::HandleOldVehicles() {
         }
         vehicle = vehicles.Next();
     }
+}
+
+/**
+ * Simple pathfinder function to find a path. The pathfinder is set in the constructor to only consider existing roads.
+ */
+function CoronaAIFix::CheckRoadConnection(startTile, endTile) {
+    this.pathfinder.InitializePath([startTile], [endTile]);
+    local path = false;
+    while (path == false) {
+      path = this.pathfinder.FindPath(100);
+      AIController.Sleep(1);
+    }
+    return path;
 }
