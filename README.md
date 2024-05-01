@@ -12,6 +12,7 @@ Changes from the original CoronaAI:
 * While it doesn't store anything in the save file, the AI will check if it's built anything when it starts to avoid rebuilding in already serviced towns.
 * The AI should be able to remove unused infrastructure later if an attempt is unsuccessful due to another company's vehicle being in the way, etc.
 * If there's enough spare cash, the AI will repay the loan, and if the AI gets low on cash, it will try to take out a loan if it doesn't have the max loan already.
+* When building stations and depots, keep them within the chosen town's local authority radius.
 
 Limitations:
 * Likely not to be compatible with all combinations of road vehicle and road type NewGRFs.

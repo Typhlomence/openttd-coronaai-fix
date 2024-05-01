@@ -163,6 +163,10 @@ function CoronaAIFix::BuildStationsAndBuses() {
     // Find only road tiles
     list.Valuate(AIRoad.IsRoadTile);
     list.RemoveValue(0);
+    // Check only for tiles that are in the current town's local authority radius.
+    // Since small towns may be enroached by large ones, the latter's roads may enter the search radius.
+    list.Valuate(AITile.IsWithinTownInfluence, this.actualTown);
+    list.RemoveValue(0);
     // Find best places for station (that accepts most humans)
     list.Valuate(AITile.GetCargoAcceptance, this.passengerCargoId, 1, 1, 3);
     list.RemoveBelowValue(10);
@@ -234,6 +238,9 @@ function CoronaAIFix::BuildStationsAndBuses() {
     list = AITileList();
     list.AddRectangle(townCenter - AIMap.GetTileIndex(8, 8), townCenter + AIMap.GetTileIndex(8, 8));
     list.Valuate(AIRoad.IsRoadTile);
+    list.RemoveValue(0);
+    // Check only for tiles that are in the current town's local authority radius.
+    list.Valuate(AITile.IsWithinTownInfluence, this.actualTown);
     list.RemoveValue(0);
     list.Valuate(AITile.GetSlope);
     list.KeepValue(AITile.SLOPE_FLAT);
@@ -502,6 +509,11 @@ function CoronaAIFix::CheckTowns() {
         // Check only road tiles.
         list.Valuate(AIRoad.IsRoadTile);
         list.RemoveValue(0);
+        
+        // Check only for tiles that are in the current town's local authority radius.
+        // Since small towns may be enroached by large ones, the latter's roads may enter the search radius.
+        list.Valuate(AITile.IsWithinTownInfluence, this.actualTown);
+        list.RemoveValue(0);
 
         // Check to see if two bus stations already exist.
         local tile = list.Begin();
@@ -547,7 +559,7 @@ function CoronaAIFix::CheckTowns() {
                     if (i == 3) {
                         nextTile = tile + AIMap.GetTileIndex(-1, 0);
                     }
-                    if (AIRoad.AreRoadTilesConnected(nextTile, tile)) {
+                    if (AIRoad.AreRoadTilesConnected(nextTile, tile) && AITile.IsWithinTownInfluence(nextTile, this.actualTown)) {
                         AILog.Info("It's connected to an adjacent tile, therefore adding it as the depot for this town");
                         potentialDepot = tile;
                         break;
