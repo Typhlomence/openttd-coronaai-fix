@@ -73,6 +73,18 @@ function CoronaAIFix::Start() {
         this.HandleOldVehicles();
         this.HandleOldTowns();
         this.DeleteUnusedCrap();
+
+        // If the company has a lot of money (at least the whole loan + 20%), repay the loan.
+        if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) > (AICompany.GetMaxLoanAmount() * 1.25) && AICompany.GetLoanAmount() > 0) {
+            AILog.Info("Plenty of money - repaying loan");
+            AICompany.SetLoanAmount(0);
+
+        // Otherwise if the company doesn't have a lot of money (less than 5% of the max loan amount), try getting a loan if the loan isn't at max already.
+        } else if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < (AICompany.GetMaxLoanAmount() / 20) && AICompany.GetLoanAmount() != AICompany.GetMaxLoanAmount()) {
+            AILog.Info("Running out of money - getting out a loan");
+            AICompany.SetLoanAmount(AICompany.GetMaxLoanAmount());
+        }
+
     }
 }
 
@@ -261,7 +273,10 @@ function CoronaAIFix::BuildStationsAndBuses() {
                 } else {
                     // If we built it but we could not connect it to road
                     AITile.DemolishTile(potentialDepot);
+                    potentialDepot = null;
                 }
+            } else {
+                potentialDepot = null;
             }
         }
         tile = list.Next();
@@ -510,7 +525,8 @@ function CoronaAIFix::CheckTowns() {
 
         // Check to see if a depot exists.
         list = AITileList();
-        list.AddRectangle(townCenter - AIMap.GetTileIndex(8, 8), townCenter + AIMap.GetTileIndex(8, 8));
+        // Since we're looking for the depot first rather than the road tile, check one extra tile out.
+        list.AddRectangle(townCenter - AIMap.GetTileIndex(9, 9), townCenter + AIMap.GetTileIndex(9, 9));
         tile = list.Begin();
         while (list.IsEnd() == false && potentialDepot == null) {
             // Check if the current tile already has one of this company's depots
@@ -572,6 +588,8 @@ function CoronaAIFix::CheckTowns() {
                 actualTown = this.actualTown
             };
             this.existing.append(obj);
+        } else {
+            AILog.Info("Couldn't find enough infrastructure for this town");
         }
 
         this.SelectTown();
