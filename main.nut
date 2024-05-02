@@ -340,12 +340,17 @@ function CoronaAIFix::BuildRoadDrivethroughStation(tile) {
 function CoronaAIFix::SellUnprofitables() {
     local vehicles = AIVehicleList();
     local vehicle = vehicles.Begin();
+    
+    // Check if the company is low on money even with the maximum loan.
+    local badFinances = AICompany.GetBankBalance(AICompany.COMPANY_SELF) < (AICompany.GetMaxLoanAmount() / 20) && AICompany.GetLoanAmount() == AICompany.GetMaxLoanAmount()
     while (vehicles.IsEnd() == false) {
-        if ((AIVehicle.GetProfitLastYear(vehicle) <= AIVehicle.GetRunningCost(vehicle) * -0.9) && AIOrder.IsCurrentOrderPartOfOrderList(vehicle)) {
+    
+        // If the company is running out of money, sell the vehicle if it's unprofitable at all, rather than just highly unprofitable.
+        if (((AIVehicle.GetProfitLastYear(vehicle) <= AIVehicle.GetRunningCost(vehicle) * -0.9) || (AIVehicle.GetProfitLastYear(vehicle) < 0 && badFinances)) && AIOrder.IsCurrentOrderPartOfOrderList(vehicle)) {
             AILog.Info("Sending unprofitable vehicle to be sold: " + vehicle)
             AIVehicle.SendVehicleToDepot(vehicle);
         }
-        if (AIVehicle.IsStoppedInDepot(vehicle) && (AIVehicle.GetProfitLastYear(vehicle) <= AIVehicle.GetRunningCost(vehicle) * -0.9)) {
+        if (AIVehicle.IsStoppedInDepot(vehicle) && ((AIVehicle.GetProfitLastYear(vehicle) <= AIVehicle.GetRunningCost(vehicle) * -0.9) || (AIVehicle.GetProfitLastYear(vehicle) < 0 && badFinances))) {
             local depotLocation = AIVehicle.GetLocation(vehicle);
             AILog.Info("Selling unprofitable vehicle " + vehicle);
             AIVehicle.SellVehicle(vehicle);

@@ -13,6 +13,7 @@ Changes from the original CoronaAI:
 * The AI should be able to remove unused infrastructure later if an attempt is unsuccessful due to another company's vehicle being in the way, etc.
 * If there's enough spare cash, the AI will repay the loan, and if the AI gets low on cash, it will try to take out a loan if it doesn't have the max loan already.
 * When building stations and depots, keep them within the chosen town's local authority radius.
+* The AI will sell vehicles that aren't making a profit (rather than just highly unprofitable) if it is really low on cash and already has the max loan.
 
 Limitations:
 * Likely not to be compatible with all combinations of road vehicle and road type NewGRFs.
