@@ -4,21 +4,27 @@ CoronaAI is a simple AI that attempts to build bus services in all cities on the
 This is my first work on an AI (or any modification for OpenTTD), so there's probably implementation details that can be improved.
 
 Changes from the original CoronaAI:
-* When selecting a bus to use, only consider road vehicles that can travel on the default road type. The bus with the highest capacity will also be chosen.
-* When building stations and depots, ensure that the company actually built them on the chosen tiles (no matter the road type), as well as checking if a bus was successfully bought.
-* When building stations and depots, ensure they are connected to each other by existing roads.
-* The AI will not try to build anything if it couldn't find a valid vehicle to buy at the moment.
-* Instead of only attempting to build once, the AI will recheck towns a year after the last check and (re)build if there's still nothing it owns in a town (and it can successfully build it).
-* While it doesn't store anything in the save file, the AI will check if it's built anything when it starts to avoid rebuilding in already serviced towns.
-* The AI should be able to remove unused infrastructure later if an attempt is unsuccessful due to another company's vehicle being in the way, etc.
-* If there's enough spare cash, the AI will repay the loan, and if the AI gets low on cash, it will try to take out a loan if it doesn't have the max loan already.
-* When building stations and depots, keep them within the chosen town's local authority radius.
-* The AI will sell vehicles that aren't making a profit (rather than just highly unprofitable) if it is really low on cash and already has the max loan.
+* Selecting vehicles:
+ * Will make sure to pick a passenger road vehicle that can run on the default road type (i.e. not a tram). If none can be found, the AI will not build anything but will wait until one is available.
+* Building stations, depots and buses:
+ * Ensure that the company actually built them on the chosen tiles (no matter the road type).
+ * Ensure that a depot was built before trying to buy a bus.
+ * Ensure that a bus was bought.
+ * Ensure stations and depots are connected to each other by existing roads.
+ * Don't build outside of the current town's local authority (which can cause issues if a big town is next to a small town).
+* Removing unused stations and depots:
+ * Try again later if the operation was unsuccessful (e.g. another company's vehicle was in the way).
+ * Only try to remove them if both stations are unused (see limitations).
+* On AI start, will attempt to look for existing stations, depots and buses (so that it does not rebuild everything again when loading a saved game).
+* After going through all towns, will wait a year before going through them again to (re)build in towns that currently have no service.
+* Finances:
+ * Will repay the loan if there's enough spare money.
+ * Will take out a loan (if it doesn't have one already) if running low on money.
+ * Will sell any unprofitable vehicles (rather than just highly unprofitable) when running low on money and if the loan is at maximum.
 
 Limitations:
 * Likely not to be compatible with all combinations of road vehicle and road type NewGRFs.
-* It's possible that, depending on how infrastructure was initially built, the function for detecting existing infrastructure might not get things exactly right. To try to prevent issues when trying to remove unused infrastructure, it checks that both stations it detected are used first.
-* It seems like the pathfinder isn't perfect as sometimes it allows stations to be built that aren't properly connected by road, just having a road tile between each end.
+* Because checking for existing infrastructure is a rough check, it might not be correct 100% of the time. To try to prevent issues, the function for deleting unused stations and depots checks if both found stations are not in use.
 
 # Original readme of ottd-coronaai
 Please increase number of road vehicles per company (in settings -> limitations).
