@@ -50,7 +50,7 @@ class CoronaAIFix extends AIController {
         this.pathfinder = RoadPathFinder();
         this.pathfinder.cost.no_existing_road = pathfinder.cost.max_cost
     }
-    
+
     // Start running the AI.
     function Start();
 }
@@ -69,14 +69,14 @@ function CoronaAIFix::Start() {
 
     // Check if there's existing infrastructure first.
     this.CheckTowns();
-    
+
     // Continuously while the AI is active...
     while (true) {
-    
+
         // Sleep for 10 ticks before performing more actions.
         this.Sleep(10);
         this.FindBestEngine();
-        
+
         // Don't try building anything if there isn't a good buffer of money.
         // Also, don't try to build anything if no bus could be found to buy.
         if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) > (AICompany.GetMaxLoanAmount() / 10) && this.engines.Count() > 0) {
@@ -85,7 +85,7 @@ function CoronaAIFix::Start() {
                 BuildStationsAndBuses();
             }
         }
-        
+
         // Other maintenance tasks.
         this.SellUnprofitables();
         this.HandleOldVehicles();
@@ -116,7 +116,7 @@ function CoronaAIFix::FindBestEngine() {
     // Only keep vehicles that can operate on the default road type (chosen as the current road type).
     engines.Valuate(AIEngine.CanRunOnRoad, AIRoad.GetCurrentRoadType())
     engines.KeepValue(1);
-    
+
     // Only keep vehicles that can carry passengers.
     engines.Valuate(AIEngine.GetCargoType)
     engines.KeepValue(this.passengerCargoId);
@@ -156,7 +156,7 @@ function CoronaAIFix::SelectTown() {
             AILog.Info("Reached end of town list, waiting until " + AIDate.GetYear(nextDate) + "-" + AIDate.GetMonth(nextDate) + "-" + AIDate.GetDayOfMonth(nextDate) + " to regenerate");
             this.towns = null;
             this.lastDate = AIDate.GetCurrentDate();
-            
+
         // Otherwise, set the current town as the one at the top of the list.
         } else {
             this.actualTown = this.towns.Begin();
@@ -226,16 +226,16 @@ function CoronaAIFix::BuildStationsAndBuses() {
     // Set the starting distance for the second station from the first.
     local distanceOfStations = 7;
     local secondStation = null;
-    
+
     // Attempt to build the second station.
     while (distanceOfStations > 2 && secondStation == null) {
         local filteredList = AIList();
         filteredList.AddList(list);
-        
+
         // Allow only tiles that are far enough away from the first station.
         filteredList.Valuate(AIMap.DistanceManhattan, firstStation);
         filteredList.KeepAboveValue(distanceOfStations);
-        
+
         // Again, check for the cargo acceptance.
         filteredList.Valuate(AITile.GetCargoAcceptance, this.passengerCargoId, 1, 1, 3);
         filteredList.RemoveBelowValue(10);
@@ -257,7 +257,7 @@ function CoronaAIFix::BuildStationsAndBuses() {
                 tile = filteredList.Next();
             }
         }
-        
+
         // If a station wasn't built, try again a bit closer.
         if (secondStation == null) {
             distanceOfStations = distanceOfStations - 1;
@@ -289,7 +289,7 @@ function CoronaAIFix::BuildStationsAndBuses() {
     local potentialDepot = null;
     local isConnected = false;
     while (list.IsEnd() == false && isConnected == false) {
-    
+
         // See if there's a tile adjacent to the current road tile that a depot can be built on.
         for (local i = 0; i < 4; i++) {
             if (i == 0) {
@@ -394,7 +394,7 @@ function CoronaAIFix::SellUnprofitables() {
             AILog.Info("Sending unprofitable vehicle to be sold: " + AIVehicle.GetName(vehicle))
             AIVehicle.SendVehicleToDepot(vehicle);
         }
-        
+
         // If a vehicle is already in the depot...
         if (AIVehicle.IsStoppedInDepot(vehicle) && ((AIVehicle.GetProfitLastYear(vehicle) <= AIVehicle.GetRunningCost(vehicle) * -0.9) || (AIVehicle.GetProfitLastYear(vehicle) < 0 && badFinances))) {
             local depotLocation = AIVehicle.GetLocation(vehicle);
@@ -472,13 +472,13 @@ function CoronaAIFix::HandleOldVehicles() {
     local vehicles = AIVehicleList();
     local vehicle = vehicles.Begin();
     while (vehicles.IsEnd() == false) {
-        
+
         // Only consider vehicles that are seven or more years older than their total age.
         if (AIVehicle.GetAgeLeft(vehicle) <= -30 * 12 * 7 && AIOrder.IsCurrentOrderPartOfOrderList(vehicle)) {
             AILog.Info("Sending old vehicle to be sold: " + AIVehicle.GetName(vehicle))
             AIVehicle.SendVehicleToDepot(vehicle);
         }
-        
+
         // If a vehicle is already in the depot...
         if (AIVehicle.IsStoppedInDepot(vehicle) && AIVehicle.GetAgeLeft(vehicle) <= -30 * 12 * 7) {
             local depotLocation = AIVehicle.GetLocation(vehicle);
@@ -496,11 +496,6 @@ function CoronaAIFix::HandleOldVehicles() {
                 // If a new vehicle wasn't built, don't sell it; if it's a money problem, we can try again later.
                 } else {
                     AILog.Info("Couldn't replace vehicle: " + AIVehicle.GetName(vehicle));
-
-                    // If there's no available replacement, send it out again.
-                    if (this.engines.Count() < 1) {
-                        AIVehicle.StartStopVehicle(vehicle);
-                    }
                 }
             } else {
                 AILog.Info("Selling " + AIVehicle.GetName(vehicle) + " - there are " + vehiclesInStation.Count() + " other vehicles");
@@ -688,15 +683,21 @@ function CoronaAIFix::RestartStoppedVehicles() {
     local vehicle = vehicles.Begin();
     while (vehicles.IsEnd() == false) {
         if (AIVehicle.IsStoppedInDepot(vehicle)) {
-            
+
             // To avoid starting vehicles that have only just arrived in the depot via the other functions, check that the vehicle isn't too old or too unprofitable first.
             local badFinances = AICompany.GetBankBalance(AICompany.COMPANY_SELF) < (AICompany.GetMaxLoanAmount() / 20) && AICompany.GetLoanAmount() == AICompany.GetMaxLoanAmount();
             local notTooOld = AIVehicle.GetAgeLeft(vehicle) > -30 * 12 * 7;
             local notTooUnprofitable = (AIVehicle.GetProfitLastYear(vehicle) > AIVehicle.GetRunningCost(vehicle) * -0.9) || (AIVehicle.GetProfitLastYear(vehicle) >= 0 && badFinances);
-            
+
             // Also check that it has orders (in case something went wrong with assigning them).
             if (notTooOld && notTooUnprofitable && AIOrder.GetOrderCount(vehicle) > 1) {
-                AILog.Info("Found vehicle: " + AIVehicle.GetName(vehicle) + " stopped in a depot that isn't too old or too unprofitable, restarting it");
+                AILog.Info("Found " + AIVehicle.GetName(vehicle) + " stopped in a depot that isn't too old or too unprofitable, restarting it");
+                AIVehicle.StartStopVehicle(vehicle);
+            }
+
+            // If the vehicle is too old, but there's no valid replacement, send it out again too.
+            if (!notTooOld && notTooUnprofitable && AIOrder.GetOrderCount(vehicle) > 1 && this.engines.Count() < 1) {
+                AILog.Info("Found " + AIVehicle.GetName(vehicle) + " stopped in a depot that is too old but there's no replacement, restarting it");
                 AIVehicle.StartStopVehicle(vehicle);
             }
         }
