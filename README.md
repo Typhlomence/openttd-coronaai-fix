@@ -23,7 +23,10 @@ Changes from the original CoronaAI:
  * Will repay the loan if there's enough spare money.
  * Will take out a loan (if it doesn't have one already) if running low on money.
  * Will sell any unprofitable vehicles (rather than just highly unprofitable) when running low on money and if the loan is at maximum.
-* Turns auto-renew off when starting to not interfere with sending old vehicles to the depot (which would lead to depots full of old auto-renewed vehicles).
+* Replacing old vehicles:
+ * On AI start, turn off auto-renew to not interfere with sending old vehicles to the depot (which would lead to depots full of auto-renewed vehicles).
+ * Do not try to sell old vehicles if there's no available replacement (and any in depots already will be sent back out).
+ * If buying a replacement vehicle fails for the last vehicle on the route, keep the old vehicle around until it can be replaced (if it can).
 
 Limitations:
 * Likely not to be compatible with all combinations of road vehicle and road type NewGRFs.
