@@ -1,7 +1,9 @@
 # CoronaAI Fix (openttd-coronaai-fix)
-CoronaAI is a simple AI that attempts to build bus services in all cities on the map. The original version by Libor Vilimek works well enough, but has some bugs which I've elected to fix with this fork, without increasing the complexity by too much.
+CoronaAI is a simple AI that attempts to build bus services in all cities on the map. The [original version](https://www.tt-forums.net/viewtopic.php?p=1238174) by Libor Vilimek works well enough, but has some bugs which I've elected to fix with this fork, without increasing the complexity by too much.
 
-This is my first work on an AI (or any modification for OpenTTD), so there's probably implementation details that can be improved.
+This is my first work on an AI (or any modification for OpenTTD), so there's probably implementation details that can be improved. Feel free to fork this if you want to improve it further, like I did!
+
+On larger maps, the number of road vehicles should be increased. For example, on a 1024x1024 map, a maximum of 2500 should be used.
 
 Changes from the original CoronaAI:
 * Selecting vehicles:
@@ -21,17 +23,8 @@ Changes from the original CoronaAI:
  * Will repay the loan if there's enough spare money.
  * Will take out a loan (if it doesn't have one already) if running low on money.
  * Will sell any unprofitable vehicles (rather than just highly unprofitable) when running low on money and if the loan is at maximum.
+* Turns auto-renew off when starting to not interfere with sending old vehicles to the depot (which would lead to depots full of old auto-renewed vehicles).
 
 Limitations:
 * Likely not to be compatible with all combinations of road vehicle and road type NewGRFs.
 * Because checking for existing infrastructure is a rough check, it might not be correct 100% of the time. To try to prevent issues, the function for deleting unused stations and depots checks if both found stations are not in use.
-
-# Original readme of ottd-coronaai
-Please increase number of road vehicles per company (in settings -> limitations).
-On 1024x1024 map the preffered number is 2500.
-
- * This is very simple AI that was written while I was ill due to having covid-19.
- * I spent only two partial days working on it, therefore it really is intended to be simple.
- * It will try to spread to all cities with buses alone.
- 
- Free to use
