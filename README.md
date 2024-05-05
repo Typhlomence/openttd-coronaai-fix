@@ -8,6 +8,7 @@ On larger maps, the number of road vehicles should be increased. For example, on
 Changes from the original CoronaAI:
 * Selecting vehicles:
     * Will make sure to pick a passenger road vehicle that can run on the default road type (i.e. not a tram). If none can be found, the AI will not build anything but will wait until one is available.
+    * Will pick the road vehicle with the highest passenger capacity.
 * Building stations, depots and buses:
     * Ensure that the company actually built them on the chosen tiles (no matter the road type).
     * Ensure that a depot was built before trying to buy a bus.
