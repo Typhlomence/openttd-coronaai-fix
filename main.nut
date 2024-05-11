@@ -19,18 +19,33 @@ import("pathfinder.road", "RoadPathFinder", 3);
 class CoronaAIFix extends AIController {
     // Current town that the AI is working on.
     actualTown = null;
+
     // Since the passenger ID cannot be assumed, this will store it when it's found later.
     passengerCargoId = -1;
+
     // List of towns to "spread" to. This counts down on each iteration and can be refilled later.
     towns = null;
+
     // Current best engine(s) available. Should usually only have one in the list.
     engines = null;
+
     // Array for data on all towns the company has successfully "spread" to.
     existing = [];
+
     // Pathfinder for checking if stations and depots are connected.
     pathfinder = null;
+
     // The last time the end of the town list was reached.
     lastDate = null;
+
+    // Number of years to wait between runs through the town list.
+    yearGap = 1;
+
+    // Number of years to keep a record of a town having an unprofitable vehicle.
+    yearGapUnprofitable = 5;
+
+    // Array for towns which had an unprofitable vehicle at some point.
+    unprofitableTowns = [];
 
     constructor() {
         // Set the current road type as the default road type.
@@ -72,7 +87,7 @@ function CoronaAIFix::Start() {
 			}
 		}
     }
-    
+
     // Take out the maximum loan if the company already has a loan but it's not at the max.
     // This is to avoid re-taking a loan and getting interest when it was repaid before.
     if (AICompany.GetLoanAmount() > 0) {
@@ -154,8 +169,8 @@ function CoronaAIFix::FindBestEngine() {
  * Initialize towns or select next town
  */
 function CoronaAIFix::SelectTown() {
-    // Allow the town list to be regenerated if it's a year since it was last generated.
-    if (this.lastDate == null || this.lastDate + 30 * 12 < AIDate.GetCurrentDate()) {
+    // Allow the town list to be regenerated if it's the specified number of gap years since it was last generated.
+    if (this.lastDate == null || this.lastDate + 30 * 12 * this.yearGap < AIDate.GetCurrentDate()) {
         if (this.towns == null) {
                 AILog.Info("Generating town list");
                 local towns = AITownList();
@@ -164,11 +179,11 @@ function CoronaAIFix::SelectTown() {
                 this.towns = towns;
         }
 
-        // If reaching the end of the list, set the current town and list as null and record the current date to check again in a year's time.
+        // If reaching the end of the list, set the current town and list as null and record the current date to check again in the specified number of gap years.
         if (this.towns.Count() == 0) {
             this.actualTown = null;
-            local nextDate = AIDate.GetCurrentDate() + 30 * 12;
-            AILog.Info("Reached end of town list, waiting until " + AIDate.GetYear(nextDate) + "-" + AIDate.GetMonth(nextDate) + "-" + AIDate.GetDayOfMonth(nextDate) + " to regenerate");
+            local nextDate = AIDate.GetCurrentDate() + 30 * 12 * this.yearGap;
+            AILog.Info("Reached end of town list, waiting " + this.yearGap + " year(s) until " + AIDate.GetYear(nextDate) + "-" + AIDate.GetMonth(nextDate) + "-" + AIDate.GetDayOfMonth(nextDate) + " to regenerate");
             this.towns = null;
             this.lastDate = AIDate.GetCurrentDate();
 
@@ -185,14 +200,32 @@ function CoronaAIFix::SelectTown() {
  * Core functionality - This will build the stations and buses
  */
 function CoronaAIFix::BuildStationsAndBuses() {
-    AILog.Info("City name " + AITown.GetName(this.actualTown));
+    AILog.Info("City name: " + AITown.GetName(this.actualTown));
 
     // Get any existing town information, to skip towns that already have stations, depots and buses.
     local existingInfo = this.GetTownInfo(this.actualTown);
     if (existingInfo == null) {
+
+        // Check if the town hasn't had an unprofitable vehicle within the specified period.
+        local unprofitableInfo = this.GetUnprofitableTownInfo(this.actualTown);
+        if (unprofitableInfo != null) {
+            if (unprofitableInfo.date + 30 * 12 * this.yearGapUnprofitable < AIDate.GetCurrentDate()) {
+                AILog.Info("Since it's been over " + this.yearGapUnprofitable + " year(s), can now try building at " + AITown.GetName(unprofitableInfo.town) + " again");
+                if (DeleteUnprofitableTownInfo(unprofitableInfo.town)) {
+                    AILog.Info("Deleted unprofitability information for "  + AITown.GetName(unprofitableInfo.town));
+                }
+            } else {
+                AILog.Info("This town has no infrastructure, but an unprofitable vehicle was sold here within the last " + this.yearGapUnprofitable + " year(s)");
+                AILog.Info("Skipping to the next town");
+                return;
+            }
+        }
+        
         AILog.Info("This town has no information yet");
+        AILog.Info("Will attempt to build here");
     } else {
-        AILog.Info("This town is already serviced - skipping to the next town");
+        AILog.Info("This town is already serviced");
+        AILog.Info("Skipping to the next town");
         return;
     }
 
@@ -415,6 +448,26 @@ function CoronaAIFix::SellUnprofitables() {
             local depotLocation = AIVehicle.GetLocation(vehicle);
             AILog.Info("Selling unprofitable vehicle: " + AIVehicle.GetName(vehicle));
             AIVehicle.SellVehicle(vehicle);
+
+            // Make a note that this town had an unprofitable vehicle.
+            local town = null;
+            foreach (obj in this.existing) {
+                if (obj.potentialDepot == depotLocation) {
+                    town = obj.actualTown;
+                    break;
+                }
+            }
+
+            if (town != null) {
+                if (this.GetUnprofitableTownInfo(town) == null) {
+                    local obj = {
+                        date = AIDate.GetCurrentDate(),
+                        town = town
+                    };
+                    this.unprofitableTowns.append(obj);
+                    AILog.Info("Making a note that " + AITown.GetName(town) + " had an unprofitable vehicle");
+                }
+            }
         }
         vehicle = vehicles.Next();
     }
@@ -429,7 +482,10 @@ function CoronaAIFix::HandleOldTowns() {
         if (obj.lastChange + 30 * 12 < AIDate.GetCurrentDate()) {
             local waitingPassengers1 = AIStation.GetCargoWaiting(AIStation.GetStationID(obj.firstStation), this.passengerCargoId);
             local waitingPassengers2 = AIStation.GetCargoWaiting(AIStation.GetStationID(obj.secondStation), this.passengerCargoId);
-            if ((waitingPassengers1 > 200 && waitingPassengers2 > 200) || (waitingPassengers1 + waitingPassengers2 > 600)) {
+
+            // Check if there's a lot of passengers waiting (either more than 200 at each, or more than 600 combined).
+            // Also check if the company is not low on money, with the same criteria as building new services in a town.
+            if ((waitingPassengers1 > 200 && waitingPassengers2 > 200) || (waitingPassengers1 + waitingPassengers2 > 600) && AICompany.GetBankBalance(AICompany.COMPANY_SELF) > (AICompany.GetMaxLoanAmount() / 10) && this.engines.Count() > 0) {
                 local newBus = AIVehicle.BuildVehicle(obj.potentialDepot, this.engines.Begin());
                 if (AIVehicle.IsValidVehicle(newBus)) {
                     AILog.Info("Cloning vehicle in " + AITown.GetName(obj.actualTown) + " as there is " + waitingPassengers1 + ":" + waitingPassengers2 + " passengers");
@@ -718,4 +774,31 @@ function CoronaAIFix::RestartStoppedVehicles() {
         }
         vehicle = vehicles.Next();
     }
+}
+
+/**
+ * Gets the information for a town if it exists in the array of unprofitable towns.
+ */
+function CoronaAIFix::GetUnprofitableTownInfo(townName) {
+    foreach (obj in this.unprofitableTowns) {
+        if (obj.town == townName) {
+            return obj;
+        }
+    }
+    return null;
+}
+
+/**
+ * Deletes the information for a town if it exists in the array of unprofitable towns.
+ */
+function CoronaAIFix::DeleteUnprofitableTownInfo(townName) {
+    for (local index = 0 ; index < this.unprofitableTowns.len() ; index = index + 1) {
+        if (this.unprofitableTowns[index].town == townName) {
+
+            // Check that the town information was deleted properly.
+            local temp = this.unprofitableTowns.remove(index);
+            return (temp.town == townName);
+        }
+    }
+    return false;
 }
