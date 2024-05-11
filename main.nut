@@ -60,9 +60,24 @@ class CoronaAIFix extends AIController {
  */
 function CoronaAIFix::Start() {
 
-    // Set the name and take out the maximum loan possible.
-    AICompany.SetName("CoronaAI")
-    AICompany.SetLoanAmount(AICompany.GetMaxLoanAmount());
+    // Set the name if there isn't a name for the company already.
+    // Borrowed some code from AAAHogEx to number the names after the first instance of CoronaAI.
+    if (AICompany.GetName(AICompany.COMPANY_SELF) == "Unnamed") {
+        local i = 0;
+	    if(!AICompany.SetName("CoronaAI")) {
+			i = 2;
+			while(!AICompany.SetName("CoronaAI #" + i)) {
+				i = i + 1;
+				if(i > 255) break;
+			}
+		}
+    }
+    
+    // Take out the maximum loan if the company already has a loan but it's not at the max.
+    // This is to avoid re-taking a loan and getting interest when it was repaid before.
+    if (AICompany.GetLoanAmount() > 0) {
+        AICompany.SetLoanAmount(AICompany.GetMaxLoanAmount());
+    }
 
     // Turn off autorenew as it causes old vehicles to never be sold if vehicles never expire.
     AICompany.SetAutoRenewStatus(false);
