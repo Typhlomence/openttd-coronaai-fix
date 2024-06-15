@@ -46,12 +46,15 @@ class CoronaAIFix extends AIController {
 
     // Array for towns which had an unprofitable vehicle at some point.
     unprofitableTownArray = [];
-    
+
     // Whether we currently want to process the town list.
     processTowns = false;
-    
+
     // How long to wait between performing build functions.
     dayGap = AIController.GetSetting("dayGap");
+
+    // What criteria to use when choosing a vehicle.
+    vehicleCriteria = AIController.GetSetting("vehicleCriteria");
 
     constructor() {
         // Set the current road type as the default road type.
@@ -108,10 +111,10 @@ function CoronaAIFix::Start() {
 
     // Continuously while the AI is active...
     while (true) {
-    
+
         // Note when we start this for the correct delay.
         local startTime = AIDate.GetCurrentDate();
-    
+
         // Update the chosen bus to build.
         this.FindBestEngine();
 
@@ -163,9 +166,34 @@ function CoronaAIFix::FindBestEngine() {
     engines.Valuate(AIEngine.GetCargoType)
     engines.KeepValue(this.passengerCargoId);
 
-    // Pick the vehicle that has the highest capacity.
-    engines.Valuate(AIEngine.GetCapacity)
-    engines.Sort(AIList.SORT_BY_VALUE, false);
+    // Pick the vehicle depending on the criteria from the parameters.
+    // 2 - Newest
+    if (this.vehicleCriteria == 2) {
+        engines.Valuate(AIEngine.GetDesignDate);
+        engines.Sort(AIList.SORT_BY_VALUE, false);
+
+    // 3 - Fastest
+    } else if (this.vehicleCriteria == 3) {
+        engines.Valuate(AIEngine.GetMaxSpeed);
+        engines.Sort(AIList.SORT_BY_VALUE, false);
+
+    // 4 - Most reliable
+    } else if (this.vehicleCriteria == 4) {
+        engines.Valuate(AIEngine.GetReliability);
+        engines.Sort(AIList.SORT_BY_VALUE, false);
+
+    // 5 - Cheapest
+    } else if (this.vehicleCriteria == 5) {
+        engines.Valuate(AIEngine.GetPrice);
+        engines.Sort(AIList.SORT_BY_VALUE, true);
+
+    // 1 - Highest capacity (default)
+    } else {
+        engines.Valuate(AIEngine.GetCapacity);
+        engines.Sort(AIList.SORT_BY_VALUE, false);
+    }
+
+    // Keep the one that is at the top of the list.
     engines.KeepTop(1);
 
     // Ensure a bus was actually found. If not, return an empty list.
@@ -185,7 +213,7 @@ function CoronaAIFix::SelectTown() {
     if (!this.processTowns && (this.lastDate == null || this.lastDate + 30 * 12 * this.yearGap < AIDate.GetCurrentDate())) {
         this.processTowns = true;
     }
-    
+
     // If we want to process the town list...
     if (this.processTowns) {
         if (this.townList == null) {
@@ -194,7 +222,7 @@ function CoronaAIFix::SelectTown() {
             townList.Valuate(AITown.GetPopulation);
             townList.Sort(AIList.SORT_BY_VALUE, false);
             this.townList = townList;
-            
+
             // Record the current date to check again in the specified number of gap years.
             this.lastDate = AIDate.GetCurrentDate();
         }

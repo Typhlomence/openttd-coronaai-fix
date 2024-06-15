@@ -16,8 +16,8 @@ class CoronaAIFix extends AIInfo {
 			medium_value = 1,
 			hard_value = 1,
 			custom_value = 1,
-			min_value = 1, 
-			max_value = 100, 
+			min_value = 1,
+			max_value = 100,
             flags = 0});
 
         AddSetting({name = "yearGapUnprofitable",
@@ -26,8 +26,8 @@ class CoronaAIFix extends AIInfo {
 			medium_value = 5,
 			hard_value = 5,
 			custom_value = 5,
-			min_value = 1, 
-			max_value = 100, 
+			min_value = 1,
+			max_value = 100,
             flags = 0});
 
         AddSetting({name = "dayGap",
@@ -36,9 +36,22 @@ class CoronaAIFix extends AIInfo {
 			medium_value = 1,
 			hard_value = 1,
 			custom_value = 1,
-			min_value = 1, 
-			max_value = 30, 
+			min_value = 1,
+			max_value = 30,
             flags = 0});
+
+        AddSetting({name = "vehicleCriteria",
+			description = "What criteria to use when picking a vehicle",
+			easy_value = 1,
+			medium_value = 1,
+			hard_value = 1,
+			custom_value = 1,
+			min_value = 1,
+			max_value = 5,
+			flags = 0});
+
+		AddLabels("vehicleCriteria",
+			{_1 = "Highest capacity", _2="Newest", _3="Fastest", _4="Most reliable", _5="Cheapest"});
     }
 }
 
