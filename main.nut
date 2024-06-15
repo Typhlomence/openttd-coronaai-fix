@@ -39,16 +39,19 @@ class CoronaAIFix extends AIController {
     lastDate = null;
 
     // Number of years to wait between runs through the town list.
-    yearGap = 1;
+    yearGap = AIController.GetSetting("yearGap");
 
     // Number of years to keep a record of a town having an unprofitable vehicle.
-    yearGapUnprofitable = 5;
+    yearGapUnprofitable = AIController.GetSetting("yearGapUnprofitable");
 
     // Array for towns which had an unprofitable vehicle at some point.
     unprofitableTownArray = [];
     
     // Whether we currently want to process the town list.
     processTowns = false;
+    
+    // How long to wait between performing build functions.
+    dayGap = AIController.GetSetting("dayGap");
 
     constructor() {
         // Set the current road type as the default road type.
@@ -105,9 +108,11 @@ function CoronaAIFix::Start() {
 
     // Continuously while the AI is active...
     while (true) {
-
-        // Sleep for 10 ticks before performing more actions.
-        this.Sleep(10);
+    
+        // Note when we start this for the correct delay.
+        local startTime = AIDate.GetCurrentDate();
+    
+        // Update the chosen bus to build.
         this.FindBestEngine();
 
         // Don't try building anything if there isn't a good buffer of money.
@@ -137,6 +142,10 @@ function CoronaAIFix::Start() {
             AICompany.SetLoanAmount(AICompany.GetMaxLoanAmount());
         }
 
+        // Sleep until the correct number of days has passed.
+        while (startTime + this.dayGap > AIDate.GetCurrentDate()) {
+            this.Sleep(1)
+        }
     }
 }
 
