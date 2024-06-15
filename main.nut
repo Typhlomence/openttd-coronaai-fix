@@ -46,6 +46,9 @@ class CoronaAIFix extends AIController {
 
     // Array for towns which had an unprofitable vehicle at some point.
     unprofitableTownArray = [];
+    
+    // Whether we currently want to process the town list.
+    processTowns = false;
 
     constructor() {
         // Set the current road type as the default road type.
@@ -170,22 +173,30 @@ function CoronaAIFix::FindBestEngine() {
  */
 function CoronaAIFix::SelectTown() {
     // Allow the town list to be regenerated if it's the specified number of gap years since it was last generated.
-    if (this.lastDate == null || this.lastDate + 30 * 12 * this.yearGap < AIDate.GetCurrentDate()) {
+    if (!this.processTowns && (this.lastDate == null || this.lastDate + 30 * 12 * this.yearGap < AIDate.GetCurrentDate())) {
+        this.processTowns = true;
+    }
+    
+    // If we want to process the town list...
+    if (this.processTowns) {
         if (this.townList == null) {
-                AILog.Info("Generating town list");
-                local townList = AITownList();
-                townList.Valuate(AITown.GetPopulation);
-                townList.Sort(AIList.SORT_BY_VALUE, false);
-                this.townList = townList;
+            AILog.Info("Generating town list");
+            local townList = AITownList();
+            townList.Valuate(AITown.GetPopulation);
+            townList.Sort(AIList.SORT_BY_VALUE, false);
+            this.townList = townList;
+            
+            // Record the current date to check again in the specified number of gap years.
+            this.lastDate = AIDate.GetCurrentDate();
         }
 
-        // If reaching the end of the list, set the current town and list as null and record the current date to check again in the specified number of gap years.
+        // If reaching the end of the list, set the current town and list as null and 
         if (this.townList.Count() == 0) {
             this.currentTownId = null;
-            local nextDate = AIDate.GetCurrentDate() + 30 * 12 * this.yearGap;
+            local nextDate = this.lastDate + 30 * 12 * this.yearGap;
             AILog.Info("Reached end of town list, waiting " + this.yearGap + " year(s) until " + AIDate.GetYear(nextDate) + "-" + AIDate.GetMonth(nextDate) + "-" + AIDate.GetDayOfMonth(nextDate) + " to regenerate");
             this.townList = null;
-            this.lastDate = AIDate.GetCurrentDate();
+            this.processTowns = false;
 
         // Otherwise, set the current town as the one at the top of the list.
         } else {
