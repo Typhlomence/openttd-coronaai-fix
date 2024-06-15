@@ -11,7 +11,7 @@
  */
 
 // Import the pathfinder to allow checking if there's an existing road connection between stations and depots.
-import("pathfinder.road", "RoadPathFinder", 3);
+import("pathfinder.road", "RoadPathFinder", 4);
 
 /**
  * Constructor
@@ -190,7 +190,7 @@ function CoronaAIFix::SelectTown() {
             this.lastDate = AIDate.GetCurrentDate();
         }
 
-        // If reaching the end of the list, set the current town and list as null and 
+        // If reaching the end of the list, set the current town and list as null.
         if (this.townList.Count() == 0) {
             this.currentTownId = null;
             local nextDate = this.lastDate + 30 * 12 * this.yearGap;
