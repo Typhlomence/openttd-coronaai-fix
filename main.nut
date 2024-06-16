@@ -56,6 +56,9 @@ class CoronaAIFix extends AIController {
     // What criteria to use when choosing a vehicle.
     vehicleCriteria = AIController.GetSetting("vehicleCriteria");
 
+    // The number of days in a "year", depending on whether we're using calendar or wallclock mode.
+    daysInYear = null;
+
     constructor() {
         // Set the current road type as the default road type.
         AIRoad.SetCurrentRoadType(AIRoad.ROADTYPE_ROAD);
@@ -83,6 +86,21 @@ class CoronaAIFix extends AIController {
  * Äll the logic starts here
  */
 function CoronaAIFix::Start() {
+
+    // At present, there isn't a way to use the API to otherwise determine if we're using calendar or wallclock mode.
+    // Hence, we check the game settings, and assume regular (calendar) time if we can't find it.
+    if (AIGameSettings.IsValid("timekeeping_units")) {
+        if (AIGameSettings.GetValue("timekeeping_units") == 1) {
+            AILog.Info("Game is using wallclock timekeeping. A year is 360 days.");
+            this.daysInYear = 360;
+        } else {
+            AILog.Info("Game is using calendar timekeeping. A year is 365 days.");
+            this.daysInYear = 365;
+        }
+    } else {
+        AILog.Info("Could not find the timekeeping setting - assuming a year is a standard 365 days.");
+        this.daysInYear = 365;
+    }
 
     // Set the name if there isn't a name for the company already.
     // Borrowed some code from AAAHogEx to number the names after the first instance of CoronaAI.
@@ -210,7 +228,7 @@ function CoronaAIFix::FindBestEngine() {
  */
 function CoronaAIFix::SelectTown() {
     // Allow the town list to be regenerated if it's the specified number of gap years since it was last generated.
-    if (!this.processTowns && (this.lastDate == null || this.lastDate + 30 * 12 * this.yearGap < AIDate.GetCurrentDate())) {
+    if (!this.processTowns && (this.lastDate == null || this.lastDate + this.daysInYear * this.yearGap < AIDate.GetCurrentDate())) {
         this.processTowns = true;
     }
 
@@ -230,7 +248,7 @@ function CoronaAIFix::SelectTown() {
         // If reaching the end of the list, set the current town and list as null.
         if (this.townList.Count() == 0) {
             this.currentTownId = null;
-            local nextDate = this.lastDate + 30 * 12 * this.yearGap;
+            local nextDate = this.lastDate + this.daysInYear * this.yearGap;
             AILog.Info("Reached end of town list, waiting " + this.yearGap + " year(s) until " + AIDate.GetYear(nextDate) + "-" + AIDate.GetMonth(nextDate) + "-" + AIDate.GetDayOfMonth(nextDate) + " to regenerate");
             this.townList = null;
             this.processTowns = false;
@@ -257,7 +275,7 @@ function CoronaAIFix::BuildStationsAndBuses() {
         // Check if the town hasn't had an unprofitable vehicle within the specified period.
         local unprofitableInfo = this.GetUnprofitableTownInfo(this.currentTownId);
         if (unprofitableInfo != null) {
-            if (unprofitableInfo.date + 30 * 12 * this.yearGapUnprofitable < AIDate.GetCurrentDate()) {
+            if (unprofitableInfo.date + this.daysInYear * this.yearGapUnprofitable < AIDate.GetCurrentDate()) {
                 AILog.Info("Since it's been over " + this.yearGapUnprofitable + " year(s), can now try building at " + AITown.GetName(unprofitableInfo.townId) + " again");
                 if (DeleteUnprofitableTownInfo(unprofitableInfo.townId)) {
                     AILog.Info("Deleted unprofitability information for "  + AITown.GetName(unprofitableInfo.townId));
@@ -529,7 +547,7 @@ function CoronaAIFix::SellUnprofitables() {
 function CoronaAIFix::HandleOldTowns() {
     foreach (townInfo in this.townInfoArray) {
         // we only add bus once per year to avoid spamming it
-        if (townInfo.lastChange + 30 * 12 < AIDate.GetCurrentDate()) {
+        if (townInfo.lastChange + this.daysInYear < AIDate.GetCurrentDate()) {
             local waitingPassengers1 = AIStation.GetCargoWaiting(AIStation.GetStationID(townInfo.firstStation), this.passengerCargoId);
             local waitingPassengers2 = AIStation.GetCargoWaiting(AIStation.GetStationID(townInfo.secondStation), this.passengerCargoId);
 
@@ -595,13 +613,14 @@ function CoronaAIFix::HandleOldVehicles() {
     while (vehicles.IsEnd() == false) {
 
         // Only consider vehicles that are seven or more years older than their total age.
-        if (AIVehicle.GetAgeLeft(vehicle) <= -30 * 12 * 7 && AIOrder.IsCurrentOrderPartOfOrderList(vehicle) && !AIVehicle.IsStoppedInDepot(vehicle)) {
+        // Vehicle age is *always* in calendar time, so always use 365 for the number of days.
+        if (AIVehicle.GetAgeLeft(vehicle) <= -365 * 7 && AIOrder.IsCurrentOrderPartOfOrderList(vehicle) && !AIVehicle.IsStoppedInDepot(vehicle)) {
             AILog.Info("Sending old vehicle to be sold: " + AIVehicle.GetName(vehicle))
             AIVehicle.SendVehicleToDepot(vehicle);
         }
 
         // If a vehicle is already in the depot...
-        if (AIVehicle.IsStoppedInDepot(vehicle) && AIVehicle.GetAgeLeft(vehicle) <= -30 * 12 * 7) {
+        if (AIVehicle.IsStoppedInDepot(vehicle) && AIVehicle.GetAgeLeft(vehicle) <= -365 * 7) {
             local depotLocation = AIVehicle.GetLocation(vehicle);
             local stationId = AIStation.GetStationID(AIOrder.GetOrderDestination(vehicle, 0));
             local vehiclesInStation = AIVehicleList_Station(stationId);
@@ -808,7 +827,7 @@ function CoronaAIFix::RestartStoppedVehicles() {
 
             // To avoid starting vehicles that have only just arrived in the depot via the other functions, check that the vehicle isn't too old or too unprofitable first.
             local badFinances = AICompany.GetBankBalance(AICompany.COMPANY_SELF) < (AICompany.GetMaxLoanAmount() / 20) && AICompany.GetLoanAmount() == AICompany.GetMaxLoanAmount();
-            local notTooOld = AIVehicle.GetAgeLeft(vehicle) > -30 * 12 * 7;
+            local notTooOld = AIVehicle.GetAgeLeft(vehicle) > -365 * 7;
             local notTooUnprofitable = (AIVehicle.GetProfitLastYear(vehicle) > AIVehicle.GetRunningCost(vehicle) * -0.9) || (AIVehicle.GetProfitLastYear(vehicle) >= 0 && badFinances);
 
             // Also check that it has orders (in case something went wrong with assigning them).

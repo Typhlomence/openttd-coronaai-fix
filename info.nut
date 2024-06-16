@@ -11,7 +11,7 @@ class CoronaAIFix extends AIInfo {
     // Let's add some parameters!
     function GetSettings() {
         AddSetting({name = "yearGap",
-			description = "Number of (economy) years to wait between checks of town infrastructure",
+			description = "Number of years/economy periods to wait between checks of town infrastructure",
 			easy_value = 1,
 			medium_value = 1,
 			hard_value = 1,
@@ -21,7 +21,7 @@ class CoronaAIFix extends AIInfo {
             flags = 0});
 
         AddSetting({name = "yearGapUnprofitable",
-			description = "Number of (economy) years to wait before rebuilding in an unprofitable town",
+			description = "Number of years/economy periods to wait before rebuilding in an unprofitable town",
 			easy_value = 5,
 			medium_value = 5,
 			hard_value = 5,
