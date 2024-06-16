@@ -180,6 +180,13 @@ function CoronaAIFix::Start() {
 }
 
 /**
+ * For randomising a list.
+ */
+function CoronaAIFix::RandomValue(id) {
+    return AIBase.Rand();
+}
+
+/**
  * Find best bus for passengers avialable
  */
 function CoronaAIFix::FindBestEngine() {
@@ -194,30 +201,49 @@ function CoronaAIFix::FindBestEngine() {
     engines.KeepValue(this.passengerCargoId);
 
     // Pick the vehicle depending on the criteria from the parameters.
-    // 2 - Newest
-    if (this.vehicleCriteria == 2) {
-        engines.Valuate(AIEngine.GetDesignDate);
-        engines.Sort(AIList.SORT_BY_VALUE, false);
-
-    // 3 - Fastest
-    } else if (this.vehicleCriteria == 3) {
-        engines.Valuate(AIEngine.GetMaxSpeed);
-        engines.Sort(AIList.SORT_BY_VALUE, false);
-
-    // 4 - Most reliable
-    } else if (this.vehicleCriteria == 4) {
-        engines.Valuate(AIEngine.GetReliability);
-        engines.Sort(AIList.SORT_BY_VALUE, false);
-
-    // 5 - Cheapest
-    } else if (this.vehicleCriteria == 5) {
-        engines.Valuate(AIEngine.GetPrice);
-        engines.Sort(AIList.SORT_BY_VALUE, true);
-
-    // 1 - Highest capacity (default)
-    } else {
-        engines.Valuate(AIEngine.GetCapacity);
-        engines.Sort(AIList.SORT_BY_VALUE, false);
+    // For each of the normal ones, sort by capacity first, unless we're already sorting by capacity, in which case sort by newest first.
+    // i.e. if more than one vehicle has the same introduction date, etc. pick the highest capacity one out of those. For highest capacity, pick the newest if multiple have the same.
+    switch(this.vehicleCriteria) {
+        // 2 - Newest
+        case 2:
+            engines.Valuate(AIEngine.GetCapacity);
+            engines.Sort(AIList.SORT_BY_VALUE, false);
+            engines.Valuate(AIEngine.GetDesignDate);
+            engines.Sort(AIList.SORT_BY_VALUE, false);
+            break;
+        // 3 - Fastest
+        case 3:
+            engines.Valuate(AIEngine.GetCapacity);
+            engines.Sort(AIList.SORT_BY_VALUE, false);
+            engines.Valuate(AIEngine.GetMaxSpeed);
+            engines.Sort(AIList.SORT_BY_VALUE, false);
+            break;
+        // 4 - Most reliable
+        case 4:
+            engines.Valuate(AIEngine.GetCapacity);
+            engines.Sort(AIList.SORT_BY_VALUE, false);
+            engines.Valuate(AIEngine.GetReliability);
+            engines.Sort(AIList.SORT_BY_VALUE, false);
+            break;
+        // 5 - Cheapest
+        case 5:
+            engines.Valuate(AIEngine.GetCapacity);
+            engines.Sort(AIList.SORT_BY_VALUE, false);
+            engines.Valuate(AIEngine.GetPrice);
+            engines.Sort(AIList.SORT_BY_VALUE, true);
+            break;
+        // 6 - Random
+        case 6:
+            engines.Valuate(this.RandomValue);
+            engines.Sort(AIList.SORT_BY_VALUE, false);
+            break;
+        // 1 - Highest capacity (default)
+        default:
+            engines.Valuate(AIEngine.GetDesignDate);
+            engines.Sort(AIList.SORT_BY_VALUE, false);
+            engines.Valuate(AIEngine.GetCapacity);
+            engines.Sort(AIList.SORT_BY_VALUE, false);
+            break;
     }
 
     // Keep the one that is at the top of the list.
@@ -225,7 +251,7 @@ function CoronaAIFix::FindBestEngine() {
 
     // Ensure a bus was actually found. If not, return an empty list.
     // (We check for the road vehicle type again since if there's no buses, it might pick a vehicle of a different type.)
-    if (engines.Count() < 0 || AIEngine.GetVehicleType(engines.Begin()) != AIVehicle.VT_ROAD || AIEngine.GetCapacity(engines.Begin()) < 1) {
+    if (engines.Count() < 1 || AIEngine.GetVehicleType(engines.Begin()) != AIVehicle.VT_ROAD || AIEngine.GetCapacity(engines.Begin()) < 1) {
         this.engines = AIList();
     } else {
         this.engines = engines;
