@@ -35,8 +35,8 @@ class CoronaAIFix extends AIController {
     // Pathfinder for checking if stations and depots are connected.
     pathfinder = null;
 
-    // The last time the end of the town list was reached.
-    lastDate = null;
+    // The date to next iterate through the list of towns.
+    nextDate = null;
 
     // Number of years to wait between runs through the town list.
     yearGap = AIController.GetSetting("yearGap");
@@ -228,7 +228,7 @@ function CoronaAIFix::FindBestEngine() {
  */
 function CoronaAIFix::SelectTown() {
     // Allow the town list to be regenerated if it's the specified number of gap years since it was last generated.
-    if (!this.processTowns && (this.lastDate == null || this.lastDate + this.daysInYear * this.yearGap < AIDate.GetCurrentDate())) {
+    if (!this.processTowns && (this.nextDate == null || this.nextDate < AIDate.GetCurrentDate())) {
         this.processTowns = true;
     }
 
@@ -241,15 +241,33 @@ function CoronaAIFix::SelectTown() {
             townList.Sort(AIList.SORT_BY_VALUE, false);
             this.townList = townList;
 
-            // Record the current date to check again in the specified number of gap years.
-            this.lastDate = AIDate.GetCurrentDate();
+            // Set the next date to be the specified number of gap years after the current iteration.
+            // If there wasn't a last date, set it to the current date.
+            if (this.nextDate == null) {
+                this.nextDate = AIDate.GetCurrentDate() + this.daysInYear * this.yearGap;
+
+            // Otherwise, add the gap years to the current "next" date.
+            } else {
+                this.nextDate += this.daysInYear * this.yearGap;
+
+                // Keep adding until we get a future date. This is to account for if an iteration took longer than the specified number of gap years.
+                if (this.nextDate < AIDate.GetCurrentDate()) {
+                    AILog.Info("We missed a scheduled date. Skipping ahead until we get a date in the future");
+                    local skips = 0;
+                    while (this.nextDate < AIDate.GetCurrentDate()) {
+                        this.nextDate += this.daysInYear * this.yearGap;
+                        skips++;
+                    }
+                    AILog.Info("Skipped " + skips + " date(s)");
+                }
+            }
+            AILog.Info("Next scheduled date is " + AIDate.GetYear(this.nextDate) + "-" + AIDate.GetMonth(this.nextDate) + "-" + AIDate.GetDayOfMonth(this.nextDate));
         }
 
         // If reaching the end of the list, set the current town and list as null.
         if (this.townList.Count() == 0) {
             this.currentTownId = null;
-            local nextDate = this.lastDate + this.daysInYear * this.yearGap;
-            AILog.Info("Reached end of town list, waiting " + this.yearGap + " year(s) until " + AIDate.GetYear(nextDate) + "-" + AIDate.GetMonth(nextDate) + "-" + AIDate.GetDayOfMonth(nextDate) + " to regenerate");
+            AILog.Info("Reached end of town list, waiting up to " + this.yearGap + " year(s) until " + AIDate.GetYear(this.nextDate) + "-" + AIDate.GetMonth(this.nextDate) + "-" + AIDate.GetDayOfMonth(this.nextDate) + " to regenerate");
             this.townList = null;
             this.processTowns = false;
 
