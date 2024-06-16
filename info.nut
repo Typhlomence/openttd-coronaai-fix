@@ -52,6 +52,14 @@ class CoronaAIFix extends AIInfo {
 
 		AddLabels("vehicleCriteria",
 			{_1 = "Highest capacity", _2="Newest", _3="Fastest", _4="Most reliable", _5="Cheapest"});
+
+        AddSetting({name = "secondaryColour",
+			description = "Pick a random secondary colour when starting the company",
+			easy_value = 0,
+			medium_value = 0,
+			hard_value = 0,
+			custom_value = 0,
+			flags = CONFIG_BOOLEAN});
     }
 }
 
