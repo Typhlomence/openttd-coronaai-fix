@@ -244,18 +244,18 @@ function CoronaAIFix::SelectTown() {
             // Set the next date to be the specified number of gap years after the current iteration.
             // If there wasn't a last date, set it to the current date.
             if (this.nextDate == null) {
-                this.nextDate = AIDate.GetCurrentDate() + this.daysInYear * this.yearGap;
+                this.nextDate = this.AddYears(AIDate.GetCurrentDate(), this.yearGap);
 
             // Otherwise, add the gap years to the current "next" date.
             } else {
-                this.nextDate += this.daysInYear * this.yearGap;
+                this.nextDate = this.AddYears(this.nextDate, this.yearGap);
 
                 // Keep adding until we get a future date. This is to account for if an iteration took longer than the specified number of gap years.
                 if (this.nextDate < AIDate.GetCurrentDate()) {
                     AILog.Info("We missed a scheduled date. Skipping ahead until we get a date in the future");
                     local skips = 0;
                     while (this.nextDate < AIDate.GetCurrentDate()) {
-                        this.nextDate += this.daysInYear * this.yearGap;
+                        this.nextDate = this.AddYears(this.nextDate, this.yearGap);
                         skips++;
                     }
                     AILog.Info("Skipped " + skips + " date(s)");
@@ -293,7 +293,7 @@ function CoronaAIFix::BuildStationsAndBuses() {
         // Check if the town hasn't had an unprofitable vehicle within the specified period.
         local unprofitableInfo = this.GetUnprofitableTownInfo(this.currentTownId);
         if (unprofitableInfo != null) {
-            if (unprofitableInfo.date + this.daysInYear * this.yearGapUnprofitable < AIDate.GetCurrentDate()) {
+            if (this.AddYears(unprofitableInfo.date, this.yearGapUnprofitable) < AIDate.GetCurrentDate()) {
                 AILog.Info("Since it's been over " + this.yearGapUnprofitable + " year(s), can now try building at " + AITown.GetName(unprofitableInfo.townId) + " again");
                 if (DeleteUnprofitableTownInfo(unprofitableInfo.townId)) {
                     AILog.Info("Deleted unprofitability information for "  + AITown.GetName(unprofitableInfo.townId));
@@ -565,7 +565,7 @@ function CoronaAIFix::SellUnprofitables() {
 function CoronaAIFix::HandleOldTowns() {
     foreach (townInfo in this.townInfoArray) {
         // we only add bus once per year to avoid spamming it
-        if (townInfo.lastChange + this.daysInYear < AIDate.GetCurrentDate()) {
+        if (this.AddYears(townInfo.lastChange, 1) < AIDate.GetCurrentDate()) {
             local waitingPassengers1 = AIStation.GetCargoWaiting(AIStation.GetStationID(townInfo.firstStation), this.passengerCargoId);
             local waitingPassengers2 = AIStation.GetCargoWaiting(AIStation.GetStationID(townInfo.secondStation), this.passengerCargoId);
 
@@ -889,4 +889,58 @@ function CoronaAIFix::DeleteUnprofitableTownInfo(townId) {
         }
     }
     return false;
+}
+
+/**
+ * Determines if a given year is a leap year.
+ */
+function CoronaAIFix::IsLeapYear(year) {
+    // There is a leap year every 4 years, except when dividable by 100 but not by 400.
+    if (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)) {
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Adds the specified number of years to a date, counting any leap days if they occur within the time period (if using calendar timekeeping).
+ * To simplify things, we don't let the date fall on the 29th of February later on if we *start* on that date. This is probably too much effort already. :P
+ */
+function CoronaAIFix::AddYears(initialDate, numYears) {
+
+    // We don't need to worry about leap years if using wallclock timekeeping.
+    if (this.daysInYear == 360) {
+        return initialDate + numYears * this.daysInYear;
+
+    // Otherwise, make sure we count leap days while adding the years.
+    } else {
+        local newDate = initialDate + this.daysInYear;
+        numYears--;
+
+        // If the current year is a leap year, and we're before the 29th of February, make sure to add that day.
+        // (We don't add a day if we're *on* the 29th, since we will just use the 1st of March of the next year in that case.)
+        if (this.IsLeapYear(AIDate.GetYear(initialDate)) && (AIDate.GetMonth(initialDate) == 1 || (AIDate.GetMonth(initialDate) == 2 && AIDate.GetDayOfMonth(initialDate) < 29))) {
+            newDate++;
+        }
+
+        // Add the rest of the years except for the last, counting any leap days.
+        while (numYears > 1) {
+            newDate += this.daysInYear;
+            if (this.IsLeapYear(AIDate.GetYear(newDate))) {
+                newDate++;
+            }
+            numYears--;
+        }
+
+        // For the last year, we want to check if the new date falls after the 28th of February if it's a leap year.
+        if (numYears == 1) {
+            newDate += this.daysInYear;
+            if (this.IsLeapYear(AIDate.GetYear(initialDate)) && (AIDate.GetMonth(initialDate) > 2 || (AIDate.GetMonth(initialDate) == 2 && AIDate.GetDayOfMonth(initialDate) == 29))) {
+                newDate++;
+            }
+        }
+
+        return newDate;
+    }
+    return null;
 }
