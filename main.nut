@@ -113,15 +113,9 @@ function CoronaAIFix::Start() {
 				if(i > 255) break;
 			}
 		}
-    }
-    
-    // Pick a random secondary colour if that setting is enabled, and the company doesn't have a different one yet.
-    if (AIController.GetSetting("secondaryColour") == 1 && AICompany.GetPrimaryLiveryColour(AICompany.LS_DEFAULT) == AICompany.GetSecondaryLiveryColour(AICompany.LS_DEFAULT)) {
-        local colour = 0;
-        do {
-            colour = AIBase.RandRange(16);
-        } while (colour == AICompany.GetPrimaryLiveryColour(AICompany.LS_DEFAULT));
-        AICompany.SetSecondaryLiveryColour(AICompany.LS_DEFAULT, colour);
+
+        // Also set the secondary colour for the company. It is allowed to be the same as the first.
+        AICompany.SetSecondaryLiveryColour(AICompany.LS_DEFAULT, AIBase.RandRange(16));
     }
 
     // Take out the maximum loan if the company already has a loan but it's not at the max.

@@ -3,7 +3,7 @@ class CoronaAIFix extends AIInfo {
     function GetName()        { return "CoronaAI Fix"; }
     function GetDescription() { return "A light modification of Corona AI that fixes some issues. This AI will attempt to build bus services in all cities on the map. You may need to increase the number of road vehicles allowed (e.g. 2500 on a 1024x1024 map). Originally by Libor Vilimek."; }
     function GetVersion()     { return 3; }
-    function GetDate()        { return "2024-06-16"; }
+    function GetDate()        { return "2024-06-17"; }
     function CreateInstance() { return "CoronaAIFix"; }
     function GetShortName()   { return "COVF"; }
     function GetAPIVersion()  { return "1.9"; }
@@ -52,14 +52,6 @@ class CoronaAIFix extends AIInfo {
 
 		AddLabels("vehicleCriteria",
 			{_1 = "Highest capacity", _2="Newest", _3="Fastest", _4="Most reliable", _5="Cheapest", _6="Random"});
-
-        AddSetting({name = "secondaryColour",
-			description = "Pick a random secondary colour when starting the company",
-			easy_value = 0,
-			medium_value = 0,
-			hard_value = 0,
-			custom_value = 0,
-			flags = CONFIG_BOOLEAN});
     }
 }
 
