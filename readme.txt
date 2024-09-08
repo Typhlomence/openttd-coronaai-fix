@@ -9,7 +9,7 @@ Main changes from the original CoronaAI:
 * Makes sure to pick the highest capacity (by default) road vehicle that can run on the default road.
 * More robust bus service construction to ensure properly running services (or clearing up if it fails to build one).
 * Also more robust removal of unused services to avoid breaking services or leaving unused infrastructure.
-* Checks for existing infrastructure on AI start, to support loading saved games.
+* Supports saving and loading games, keeping its schedule and the information on its town infrastructure (Checks for existing infrastructure on AI start if there is no save data).
 * Will check towns yearly (by default) to build infrastructure rather than only trying once.
 * Better finances management such as repaying the loan and being stricter on unprofitable services when losing money.
 * Will not sell old vehicles if there's currently no valid replacement.
@@ -18,4 +18,3 @@ Main changes from the original CoronaAI:
 Limitations:
 * Likely not to be compatible with all combinations of road vehicle and road type NewGRFs.
 * Function for checking infrastructure when the game is loaded might not be correct 100% of the time.
-* Does not save anything, so gap between checks of towns will restart upon loading the game.

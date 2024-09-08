@@ -43,3 +43,6 @@ Version 3 - 17-06-2024:
     - Accounts for leap years if running in calendar timekeeping mode.
 - Uses Road.Pathfinder version 4 rather than 3.
 - Will pick a random secondary colour for the company when it is started, so that it can be a bit more colourful with 2cc NewGRFs.
+
+Version 4 - 08-09-2024:
+- Now supports saving and loading. The next scheduled check on town infrastructure, and the data on towns will be saved.

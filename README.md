@@ -18,7 +18,8 @@ Changes from the original CoronaAI:
 * Removing unused stations and depots:
     * Try again later if the operation was unsuccessful (e.g. another company's vehicle was in the way).
     * Only try to remove them if both stations are unused (see limitations).
-* On AI start, will attempt to look for existing stations, depots and buses (so that it does not rebuild everything again when loading a saved game).
+* Properly supports saving and loading games. Data on the town iteration schedule, and the information on town infrastructure will be saved.
+    * On AI start, if there is no save data, will attempt to look for existing stations, depots and buses (so that it does not rebuild everything again).
 * After going through all towns, will wait a year before going through them again to (re)build in towns that currently have no service.
 * Finances:
     * Will repay the loan if there's enough spare money.

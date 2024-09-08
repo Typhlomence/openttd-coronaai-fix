@@ -127,8 +127,10 @@ function CoronaAIFix::Start() {
     // Turn off autorenew as it causes old vehicles to never be sold if vehicles never expire.
     AICompany.SetAutoRenewStatus(false);
 
-    // Check if there's existing infrastructure first.
-    this.CheckTowns();
+    // Check if there's existing infrastructure first, if there's no saved data.
+    if (this.townInfoArray.len() == 0) {
+        this.CheckTowns();
+    }
 
     // Continuously while the AI is active...
     while (true) {
@@ -988,24 +990,47 @@ function CoronaAIFix::AddYears(initialDate, numYears) {
 
 /**
  * Saves the current state of the AI.
- * Right now, just saves the next scheduled date.
+ * Saves the next scheduled date, the list of infrastructure, and the list of unprofitable towns.
  */
 function CoronaAIFix::Save()
 {
+    local table = {
+        nextDate = null,
+        townInfoArray = []
+        unprofitableTownArray = []
+    }
+
+    // Check if there's a next scheduled date.
     if (this.nextDate != null) {
         AILog.Info("Saving next scheduled date as " + AIDate.GetYear(this.nextDate) + "-" + AIDate.GetMonth(this.nextDate) + "-" + AIDate.GetDayOfMonth(this.nextDate));
+        table.nextDate = this.nextDate;
     } else {
-        AILog.Info("No next scheduled date to save at the moment")
+        AILog.Info("No next scheduled date to save at the moment");
     }
-    local table = {
-        nextDate = this.nextDate
+
+    // Check if there's a list of infrastructure.
+    if (this.townInfoArray.len() > 0) {
+        AILog.Info("Saving infrastructure information for " + this.townInfoArray.len() + " town(s)");
+        table.townInfoArray = this.townInfoArray;
+    } else {
+        AILog.Info("No infrastructure information to save at the moment");
     }
+
+    // Check if there's a list of unprofitable towns.
+    if (this.unprofitableTownArray.len() > 0) {
+        AILog.Info("Saving dates for " + this.unprofitableTownArray.len() + " unprofitable town(s)");
+        table.unprofitableTownArray = this.unprofitableTownArray;
+    } else {
+        AILog.Info("No unprofitable town information to save at the moment");
+    }
+
+    // Return the table of data.
     return table;
 }
 
 /**
  * Loads the state of the AI from a savegame.
- * Right now, just saves the next scheduled date.
+ * Loads the next scheduled date, the list of infrastructure, and the list of unprofitable towns.
  */
 function CoronaAIFix::Load(version, data)
 {
@@ -1018,7 +1043,23 @@ function CoronaAIFix::Load(version, data)
             this.nextDate = data.nextDate;
             AILog.Info("Loaded next scheduled date as " + AIDate.GetYear(this.nextDate) + "-" + AIDate.GetMonth(this.nextDate) + "-" + AIDate.GetDayOfMonth(this.nextDate));
         } else {
-            AILog.Info("No previous data saved")
+            AILog.Info("No next scheduled date saved")
+        }
+
+        // Check if there's a list of infrastructure.
+        if (data.rawin("townInfoArray") && data.townInfoArray.len() > 0) {
+            this.townInfoArray = data.townInfoArray;
+            AILog.Info("Loaded infrastructure information for " + this.townInfoArray.len() + " town(s)");
+        } else {
+            AILog.Info("No infrastructure information saved");
+        }
+
+        // Check if there's a list of unprofitable towns.
+        if (data.rawin("unprofitableTownArray") && data.unprofitableTownArray.len() > 0) {
+            this.unprofitableTownArray = data.unprofitableTownArray;
+            AILog.Info("Loaded dates for " + this.unprofitableTownArray.len() + " unprofitable town(s)");
+        } else {
+            AILog.Info("No unprofitable town information saved");
         }
     }
 }
