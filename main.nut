@@ -14,7 +14,7 @@
 import("pathfinder.road", "RoadPathFinder", 4);
 
 /**
- * Constructor
+ * Constructor.
  */
 class CoronaAIFix extends AIController {
     // Current town that the AI is working on.
@@ -83,7 +83,7 @@ class CoronaAIFix extends AIController {
 }
 
 /**
- * Äll the logic starts here
+ * All the logic starts here.
  */
 function CoronaAIFix::Start() {
 
@@ -91,14 +91,14 @@ function CoronaAIFix::Start() {
     // Hence, we check the game settings, and assume regular (calendar) time if we can't find it.
     if (AIGameSettings.IsValid("timekeeping_units")) {
         if (AIGameSettings.GetValue("timekeeping_units") == 1) {
-            AILog.Info("Game is using wallclock timekeeping. A year is 360 days.");
+            AILog.Info("Game is using wallclock timekeeping. A year is 360 days");
             this.daysInYear = 360;
         } else {
-            AILog.Info("Game is using calendar timekeeping. A year is 365 days.");
+            AILog.Info("Game is using calendar timekeeping. A year is 365 days");
             this.daysInYear = 365;
         }
     } else {
-        AILog.Info("Could not find the timekeeping setting - assuming a year is a standard 365 days.");
+        AILog.Info("Could not find the timekeeping setting - assuming a year is a standard 365 days");
         this.daysInYear = 365;
     }
 
@@ -181,7 +181,7 @@ function CoronaAIFix::RandomValue(id) {
 }
 
 /**
- * Find best bus for passengers avialable
+ * Find best bus for passengers available.
  */
 function CoronaAIFix::FindBestEngine() {
     local engines = AIEngineList(AIVehicle.VT_ROAD);
@@ -253,11 +253,12 @@ function CoronaAIFix::FindBestEngine() {
 }
 
 /**
- * Initialize towns or select next town
+ * Initialize towns or select next town.
+ * Normally, this only runs if there is no next scheduled date, or it's past that date. Passing true as an argument will have it ignore dates.
  */
-function CoronaAIFix::SelectTown() {
-    // Allow the town list to be regenerated if it's the specified number of gap years since it was last generated.
-    if (!this.processTowns && (this.nextDate == null || this.nextDate < AIDate.GetCurrentDate())) {
+function CoronaAIFix::SelectTown(ignoreDates = false) {
+    // Allow the town list to be regenerated if it's the specified number of gap years since it was last generated, or dates are being ignored.
+    if ((!this.processTowns && (this.nextDate == null || this.nextDate < AIDate.GetCurrentDate())) || ignoreDates) {
         this.processTowns = true;
     }
 
@@ -270,33 +271,44 @@ function CoronaAIFix::SelectTown() {
             townList.Sort(AIList.SORT_BY_VALUE, false);
             this.townList = townList;
 
-            // Set the next date to be the specified number of gap years after the current iteration.
-            // If there wasn't a last date, set it to the current date.
-            if (this.nextDate == null) {
-                this.nextDate = this.AddYears(AIDate.GetCurrentDate(), this.yearGap);
+            // If dates are not being ignored...
+            if (!ignoreDates) {
+                // Set the next date to be the specified number of gap years after the current iteration.
+                // If there wasn't a last date, set it to the current date.
+                if (this.nextDate == null) {
+                    this.nextDate = this.AddYears(AIDate.GetCurrentDate(), this.yearGap);
 
-            // Otherwise, add the gap years to the current "next" date.
-            } else {
-                this.nextDate = this.AddYears(this.nextDate, this.yearGap);
+                // Otherwise, add the gap years to the current "next" date.
+                } else {
+                    this.nextDate = this.AddYears(this.nextDate, this.yearGap);
 
-                // Keep adding until we get a future date. This is to account for if an iteration took longer than the specified number of gap years.
-                if (this.nextDate < AIDate.GetCurrentDate()) {
-                    AILog.Info("We missed a scheduled date. Skipping ahead until we get a date in the future");
-                    local skips = 0;
-                    while (this.nextDate < AIDate.GetCurrentDate()) {
-                        this.nextDate = this.AddYears(this.nextDate, this.yearGap);
-                        skips++;
+                    // Keep adding until we get a future date. This is to account for if an iteration took longer than the specified number of gap years.
+                    if (this.nextDate < AIDate.GetCurrentDate()) {
+                        AILog.Info("We missed a scheduled date. Skipping ahead until we get a date in the future");
+                        local skips = 0;
+                        while (this.nextDate < AIDate.GetCurrentDate()) {
+                            this.nextDate = this.AddYears(this.nextDate, this.yearGap);
+                            skips++;
+                        }
+                        AILog.Info("Skipped " + skips + " date(s)");
                     }
-                    AILog.Info("Skipped " + skips + " date(s)");
                 }
             }
-            AILog.Info("Next scheduled date is " + AIDate.GetYear(this.nextDate) + "-" + AIDate.GetMonth(this.nextDate) + "-" + AIDate.GetDayOfMonth(this.nextDate));
+
+            // Only show the message below if there's an actual next date.
+            if (this.nextDate != null) {
+                AILog.Info("Next scheduled date is " + AIDate.GetYear(this.nextDate) + "-" + AIDate.GetMonth(this.nextDate) + "-" + AIDate.GetDayOfMonth(this.nextDate));
+            }
         }
 
         // If reaching the end of the list, set the current town and list as null.
         if (this.townList.Count() == 0) {
             this.currentTownId = null;
-            AILog.Info("Reached end of town list, waiting up to " + this.yearGap + " year(s) until " + AIDate.GetYear(this.nextDate) + "-" + AIDate.GetMonth(this.nextDate) + "-" + AIDate.GetDayOfMonth(this.nextDate) + " to regenerate");
+
+            // Only show the message below if there's an actual next date.
+            if (this.nextDate != null) {
+                AILog.Info("Reached end of town list, waiting up to " + this.yearGap + " year(s) until " + AIDate.GetYear(this.nextDate) + "-" + AIDate.GetMonth(this.nextDate) + "-" + AIDate.GetDayOfMonth(this.nextDate) + " to regenerate");
+            }
             this.townList = null;
             this.processTowns = false;
 
@@ -310,7 +322,7 @@ function CoronaAIFix::SelectTown() {
 }
 
 /**
- * Core functionality - This will build the stations and buses
+ * Core functionality - This will build the stations and buses.
  */
 function CoronaAIFix::BuildStationsAndBuses() {
     AILog.Info("City name: " + AITown.GetName(this.currentTownId));
@@ -539,7 +551,7 @@ function CoronaAIFix::BuildRoadDrivethroughStation(tile) {
 }
 
 /**
- * If vehicle is highly unprofitable - just sell it
+ * If vehicle is highly unprofitable - just sell it.
  */
 function CoronaAIFix::SellUnprofitables() {
     local vehicles = AIVehicleList();
@@ -589,7 +601,7 @@ function CoronaAIFix::SellUnprofitables() {
 }
 
 /**
- * Add buses in old towns where we already have stations - if there is enough passengers
+ * Add buses in old towns where we already have stations - if there is enough passengers.
  */
 function CoronaAIFix::HandleOldTowns() {
     foreach (townInfo in this.townInfoArray) {
@@ -615,7 +627,7 @@ function CoronaAIFix::HandleOldTowns() {
 }
 
 /**
- * If we find out that there is non-used infrastructure - remove it
+ * If we find out that there is non-used infrastructure - remove it.
  */
 // I like the name for this function, by the way. :P
 function CoronaAIFix::DeleteUnusedCrap() {
@@ -646,7 +658,7 @@ function CoronaAIFix::DeleteUnusedCrap() {
 }
 
 /**
- * Selling vehicles that are too old
+ * Selling vehicles that are too old.
  */
 function CoronaAIFix::HandleOldVehicles() {
     // Don't do this if there's currently no valid vehicle to replace old vehicles with.
@@ -745,7 +757,7 @@ function CoronaAIFix::CheckTowns() {
     }
 
     AILog.Info("Checking all towns for existing company presence");
-    this.SelectTown();
+    this.SelectTown(true);
     while (this.currentTownId != null) {
 
         // Potential values to store - if there's a bus, two stations and a depot.
@@ -858,7 +870,7 @@ function CoronaAIFix::CheckTowns() {
             AILog.Info("Couldn't find enough infrastructure for this town");
         }
 
-        this.SelectTown();
+        this.SelectTown(true);
     }
     AILog.Info("All towns checked");
 }
@@ -938,7 +950,7 @@ function CoronaAIFix::IsLeapYear(year) {
 function CoronaAIFix::AddYears(initialDate, numYears) {
 
     // We don't need to worry about leap years if using wallclock timekeeping.
-    if (this.daysInYear == 360) {
+    if (this.daysInYear != 365) {
         return initialDate + numYears * this.daysInYear;
 
     // Otherwise, make sure we count leap days while adding the years.
@@ -972,4 +984,41 @@ function CoronaAIFix::AddYears(initialDate, numYears) {
         return newDate;
     }
     return null;
+}
+
+/**
+ * Saves the current state of the AI.
+ * Right now, just saves the next scheduled date.
+ */
+function CoronaAIFix::Save()
+{
+    if (this.nextDate != null) {
+        AILog.Info("Saving next scheduled date as " + AIDate.GetYear(this.nextDate) + "-" + AIDate.GetMonth(this.nextDate) + "-" + AIDate.GetDayOfMonth(this.nextDate));
+    } else {
+        AILog.Info("No next scheduled date to save at the moment")
+    }
+    local table = {
+        nextDate = this.nextDate
+    }
+    return table;
+}
+
+/**
+ * Loads the state of the AI from a savegame.
+ * Right now, just saves the next scheduled date.
+ */
+function CoronaAIFix::Load(version, data)
+{
+    // There shouldn't be any data for versions lower than 4, but check anyway...
+    if (version > 3) {
+        AILog.Info("Checking if there's saved data...")
+
+        // Check if there's a saved scheduled date.
+        if (data.rawin("nextDate") && data.nextDate != null) {
+            this.nextDate = data.nextDate;
+            AILog.Info("Loaded next scheduled date as " + AIDate.GetYear(this.nextDate) + "-" + AIDate.GetMonth(this.nextDate) + "-" + AIDate.GetDayOfMonth(this.nextDate));
+        } else {
+            AILog.Info("No previous data saved")
+        }
+    }
 }
